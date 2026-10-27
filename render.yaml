@@ -1,0 +1,16 @@
+services:
+  - type: static_site
+    name: senseguard-dashboard
+    buildCommand: ""
+    staticPublishPath: "."
+    headers:
+      - path: /*
+        name: Access-Control-Allow-Origin
+        value: "*"
+      - path: /*.glb
+        name: Content-Type
+        value: model/gltf-binary
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

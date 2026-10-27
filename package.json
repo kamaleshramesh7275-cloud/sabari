@@ -1,0 +1,22 @@
+{
+  "name": "senseguard-dashboard",
+  "version": "2.2.0",
+  "description": "SENSEGuard Embedded Sensor Integrity & Fault Diagnosis Dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "sensor-fault-diagnosis",
+    "telemetry",
+    "esp32",
+    "webserial",
+    "threejs",
+    "senseguard"
+  ],
+  "author": "BYTECRAFT (Sabarish R, Sahana M S)",
+  "license": "MIT"
+}
