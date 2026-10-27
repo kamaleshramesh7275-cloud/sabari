@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SENSEGuard — Interactive Sensor Fault &amp; Integrity Dashboard</title>
+  <meta name="description" content="Quad-sensor multi-fault simulation and integrity diagnosis demonstration dashboard for Ideathon 10.0 / AICF by Team BYTECRAFT.">
+  
+  <!-- Engineering Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Three.js + GLTFLoader + OrbitControls for 3D Digital Twin -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body class="theme-light">
+  <div class="app-wrapper">
+    
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="header-brand-section">
+        <div class="brand-logo-container">
+          <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="brand-titles">
+          <div class="main-title">SENSE<span class="brand-accent">Guard</span> <span class="badge-pill">AICF Ideathon 10.0</span></div>
+          <div class="sub-title">Embedded Sensor Integrity &amp; Fault Diagnosis System &bull; Team BYTECRAFT</div>
+        </div>
+      </div>
+
+      <!-- Navigation Bar -->
+      <nav class="app-navigation" id="app-nav">
+        <button class="nav-button active" data-page="page-quad" id="tab-quad">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <span>Quad-Sensor Benchmark</span>
+        </button>
+
+        <button class="nav-button" data-page="page-telemetry" id="tab-telemetry">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span>Live Dual Telemetry</span>
+        </button>
+
+        <button class="nav-button" data-page="page-digital-twin" id="tab-digital-twin">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          <span>3D Digital Twin</span>
+        </button>
+
+        <button class="nav-button" data-page="page-bench" id="tab-bench">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <span>Fault Injection Sandbox</span>
+        </button>
+
+        <button class="nav-button" data-page="page-analytics" id="tab-analytics">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          <span>Alert History &amp; Summary</span>
+        </button>
+
+        <button class="nav-button" data-page="page-hardware" id="tab-hardware">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/></svg>
+          <span>Hardware &amp; Code</span>
+        </button>
+      </nav>
+
+      <!-- Action Buttons -->
+      <div class="header-actions">
+        <div class="stream-badge" id="stream-status-pill">
+          <span class="stream-dot" id="stream-dot"></span>
+          <span id="stream-mode-text">Simulation Mode (10 Hz)</span>
+        </div>
+
+        <button class="btn btn-secondary" id="btn-webserial-toggle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h.01M10 12h.01M14 12h.01M18 12h.01"/></svg>
+          <span id="btn-serial-text">Connect ESP32</span>
+        </button>
+
+        <button class="btn btn-primary" id="btn-export-csv">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>Export CSV</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Global Telemetry Status Bar -->
+    <div class="global-status-strip">
+      <div class="status-strip-item item-state">
+        <span class="strip-label">SYSTEM INTEGRITY:</span>
+        <span class="strip-badge badge-normal" id="global-state-badge">OPTIMAL (NORMAL)</span>
+      </div>
+      <div class="status-strip-item">
+        <span class="strip-label">TRUST INDEX:</span>
+        <span class="strip-value val-blue" id="global-trust-val">98%</span>
+      </div>
+      <div class="status-strip-item">
+        <span class="strip-label">ACTIVE SOURCE:</span>
+        <span class="strip-value val-green" id="global-active-source">Sensor 4 (Elected)</span>
+      </div>
+      <div class="status-strip-item">
+        <span class="strip-label">TRUE PROCESS TEMP:</span>
+        <span class="strip-value" id="global-process-temp">24.85 &deg;C</span>
+      </div>
+      <div class="status-strip-item">
+        <span class="strip-label">FAULT ISOLATION RATE:</span>
+        <span class="strip-value val-blue" id="global-isolation-rate">3/3 Isolated (100%)</span>
+      </div>
+      <div class="status-strip-item item-meta">
+        <span class="strip-label">PROCESS CONTINUITY:</span>
+        <span class="strip-value val-green">Uninterrupted Output</span>
+      </div>
+    </div>
+
+    <!-- Main Viewport (SPA Pages) -->
+    <main class="main-content-viewport">
+
+      <!-- ===============================================================
+           PAGE: QUAD-SENSOR MULTI-FAULT SIMULATION BENCHMARK (PRIMARY VIEW)
+           1 Disconnected, 1 Crashed, 1 Wrong Reading, 1 Successfully
+           =============================================================== -->
+      <section class="page-container active" id="page-quad">
+        <div class="quad-simulation-layout">
+          
+          <!-- Master Quad Banner / Overview Card -->
+          <div class="panel-card quad-hero-card">
+            <div class="quad-hero-header">
+              <div>
+                <span class="panel-kicker">QUAD-SENSOR FAULT ISOLATION BENCHMARK &bull; MULTI-TRANSDUCER ARBITRATION</span>
+                <h2 class="hero-title">Simultaneous 4-Channel Integrity &amp; Fault Classification Engine</h2>
+                <p class="hero-desc">
+                  Simulating 4 distinct real-world sensor conditions: <strong>1 Disconnected</strong>, <strong>1 Crashed (Frozen)</strong>, <strong>1 Wrong Reading (Biased Outlier)</strong>, and <strong>1 Successfully (Ground Truth)</strong>. SENSEGuard autonomously isolates all 3 failed channels and elects the healthy sensor to maintain 100% process continuity.
+                </p>
+              </div>
+
+              <div class="quad-hero-actions">
+                <button class="btn btn-primary" id="btn-trigger-quad-scenario">
+                  Run Quad-Fault Benchmark
+                </button>
+                <button class="btn btn-secondary" id="btn-reset-quad-nominal">
+                  Reset All 4 to Nominal
+                </button>
+              </div>
+            </div>
+
+            <!-- 4 Independent Channel Cards Grid -->
+            <div class="quad-channels-grid">
+              
+              <!-- Sensor 1: Disconnected -->
+              <div class="quad-channel-card card-s1-disconnected" id="card-s1">
+                <div class="qcc-top">
+                  <span class="qcc-tag tag-s1">SENSOR 1 &bull; PIN 34</span>
+                  <span class="qcc-state-badge state-badge-s1" id="badge-s1">DISCONNECTED</span>
+                </div>
+                <div class="qcc-value-row">
+                  <div class="qcc-num" id="val-s1">DISC</div>
+                  <span class="qcc-delta-tag" id="delta-s1">0V Rail Drop</span>
+                </div>
+                <div class="qcc-subtext" id="desc-s1">
+                  Physical wire severed / open circuit. ADC reads 0 counts (0.00V). SENSEGuard instantly trips boundary guard.
+                </div>
+                <div class="qcc-footer-meta">
+                  <span>Latency: <strong id="lat-s1">12 ms</strong></span>
+                  <button class="btn-toggle-channel" id="toggle-s1">Reconnect S1</button>
+                </div>
+              </div>
+
+              <!-- Sensor 2: Crashed (Frozen) -->
+              <div class="quad-channel-card card-s2-crashed" id="card-s2">
+                <div class="qcc-top">
+                  <span class="qcc-tag tag-s2">SENSOR 2 &bull; PIN 35</span>
+                  <span class="qcc-state-badge state-badge-s2" id="badge-s2">CRASHED (FROZEN)</span>
+                </div>
+                <div class="qcc-value-row">
+                  <div class="qcc-num" id="val-s2">24.50<span class="unit">&deg;C</span></div>
+                  <span class="qcc-delta-tag" id="delta-s2">Var: 0.000</span>
+                </div>
+                <div class="qcc-subtext" id="desc-s2">
+                  Transducer bus hang / ADC stuck-at value. Zero variance detected while companion thermal channels fluctuate.
+                </div>
+                <div class="qcc-footer-meta">
+                  <span>Latency: <strong id="lat-s2">780 ms</strong></span>
+                  <button class="btn-toggle-channel" id="toggle-s2">Unfreeze S2</button>
+                </div>
+              </div>
+
+              <!-- Sensor 3: Wrong Reading (Outlier Drift) -->
+              <div class="quad-channel-card card-s3-wrong" id="card-s3">
+                <div class="qcc-top">
+                  <span class="qcc-tag tag-s3">SENSOR 3 &bull; PIN 32</span>
+                  <span class="qcc-state-badge state-badge-s3" id="badge-s3">WRONG READING</span>
+                </div>
+                <div class="qcc-value-row">
+                  <div class="qcc-num" id="val-s3">37.20<span class="unit">&deg;C</span></div>
+                  <span class="qcc-delta-tag tag-high" id="delta-s3">+12.4&deg;C Bias</span>
+                </div>
+                <div class="qcc-subtext" id="desc-s3">
+                  Severe calibration divergence / partial ground bias. Reading deviates by &gt;3.0&deg;C from consensus corridor.
+                </div>
+                <div class="qcc-footer-meta">
+                  <span>Latency: <strong id="lat-s3">110 ms</strong></span>
+                  <button class="btn-toggle-channel" id="toggle-s3">Recalibrate S3</button>
+                </div>
+              </div>
+
+              <!-- Sensor 4: Successful (Ground Truth) -->
+              <div class="quad-channel-card card-s4-success" id="card-s4">
+                <div class="qcc-top">
+                  <span class="qcc-tag tag-s4">SENSOR 4 &bull; PIN 33</span>
+                  <span class="qcc-state-badge state-badge-s4" id="badge-s4">HEALTHY &bull; ELECTED</span>
+                </div>
+                <div class="qcc-value-row">
+                  <div class="qcc-num" id="val-s4">24.85<span class="unit">&deg;C</span></div>
+                  <span class="qcc-delta-tag tag-clean" id="delta-s4">SNR: 39 dB</span>
+                </div>
+                <div class="qcc-subtext" id="desc-s4">
+                  Accurate ground-truth reference tracking thermal process. Elected by SENSEGuard as the authoritative consensus signal.
+                </div>
+                <div class="qcc-footer-meta">
+                  <span>Status: <strong class="val-green">Process Truth</strong></span>
+                  <button class="btn-toggle-channel" id="toggle-s4">Inject Fault S4</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Quad-Channel Synchronous Waveform Canvas -->
+          <div class="panel-card quad-chart-panel">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-heading">4-Channel Synchronous Waveform &amp; Fault Separation Canvas</h3>
+                <span class="panel-subheading">Simultaneous plotting of all 4 sensors showing detection boundaries and elected consensus</span>
+              </div>
+              
+              <div class="chart-controls-group">
+                <div class="chart-legend-box">
+                  <span class="legend-chip chip-s1"></span> <span>S1 (Disconnected)</span>
+                  <span class="legend-chip chip-s2"></span> <span>S2 (Crashed)</span>
+                  <span class="legend-chip chip-s3"></span> <span>S3 (Wrong Reading)</span>
+                  <span class="legend-chip chip-s4"></span> <span>S4 (Successful Truth)</span>
+                  <span class="legend-chip chip-consensus"></span> <span>Elected Output</span>
+                </div>
+                <div class="time-btn-group">
+                  <button class="btn-time active" data-sec="30">30s</button>
+                  <button class="btn-time" data-sec="60">60s</button>
+                  <button class="btn-time" data-sec="120">120s</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="canvas-holder">
+              <canvas id="quad-canvas"></canvas>
+              <div class="canvas-inspector" id="quad-crosshair-hud">
+                <span id="quad-hud-text">Inspect: Move cursor over chart</span>
+              </div>
+            </div>
+
+            <div class="chart-footer-metrics">
+              <div><span class="lbl">Arbitration Status:</span> <strong class="val-green" id="arb-status">3 Isolated, S4 Governing Process</strong></div>
+              <div><span class="lbl">Consensus Truth Output:</span> <strong id="quad-consensus-val">24.85 &deg;C</strong></div>
+              <div><span class="lbl">Process Uptime:</span> <strong class="val-green">100.0% (Zero Interruption)</strong></div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ===============================================================
+           PAGE: LIVE DUAL TELEMETRY & INTEGRITY
+           =============================================================== -->
+      <section class="page-container" id="page-telemetry">
+        <div class="telemetry-layout">
+          
+          <!-- Large Prominent Integrity & Health Card -->
+          <div class="panel-card integrity-hero-card">
+            <div class="integrity-header-row">
+              <div class="hero-left">
+                <span class="panel-kicker">REAL-TIME TRANSDUCER HEALTH EVALUATION</span>
+                <h2 class="hero-title">System Integrity &amp; Diagnostic Classification</h2>
+              </div>
+              <div class="hero-right">
+                <span class="eval-mode-badge">Continuous Sampling &bull; 10.0 Hz</span>
+              </div>
+            </div>
+
+            <div class="integrity-body-layout">
+              <div class="trust-meter-column">
+                <div class="meter-svg-box">
+                  <svg class="meter-svg" viewBox="0 0 130 130">
+                    <circle class="meter-track" cx="65" cy="65" r="54" />
+                    <circle class="meter-bar" id="hud-ring-fill" cx="65" cy="65" r="54" stroke-dasharray="339.29" stroke-dashoffset="13" />
+                  </svg>
+                  <div class="meter-content">
+                    <span class="meter-number" id="hud-trust-digit">98</span>
+                    <span class="meter-symbol">%</span>
+                    <span class="meter-caption">TRUST SCORE</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="classification-info-column">
+                <div class="status-pill-large pill-large-normal" id="hud-class-pill">
+                  <span class="pill-dot" id="hud-class-dot"></span>
+                  <span class="pill-title-text" id="hud-class-title">OPTIMAL (NORMAL)</span>
+                </div>
+                <p class="classification-narrative" id="hud-class-details">
+                  Dual-sensor consensus verified within &plusmn;0.3&deg;C corridor. Both transducers exhibiting nominal variance and low noise. All plausibility criteria satisfied.
+                </p>
+                <div class="detection-meta-bar">
+                  <div class="meta-pill">
+                    <span class="mp-label">Detection Delay:</span>
+                    <span class="mp-val val-green" id="kpi-delay-hud">&lt; 84 ms</span>
+                  </div>
+                  <div class="meta-pill">
+                    <span class="mp-label">False Alarm Rate:</span>
+                    <span class="mp-val val-green" id="kpi-false-alarm-hud">0.0 %</span>
+                  </div>
+                  <div class="meta-pill">
+                    <span class="mp-label">Consensus State:</span>
+                    <span class="mp-val" id="kpi-consensus-state">Synchronized</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="channel-stats-quad">
+                <div class="ch-stat-box box-sensor-a">
+                  <div class="ch-stat-label">SENSOR A (CHANNEL 1)</div>
+                  <div class="ch-stat-num" id="hud-val-a">24.20<span class="unit">&deg;C</span></div>
+                  <div class="ch-stat-sub" id="hud-sub-a">Variance: 0.04 &bull; OK</div>
+                </div>
+
+                <div class="ch-stat-box box-sensor-b">
+                  <div class="ch-stat-label">SENSOR B (CHANNEL 2)</div>
+                  <div class="ch-stat-num" id="hud-val-b">24.35<span class="unit">&deg;C</span></div>
+                  <div class="ch-stat-sub" id="hud-sub-b">Variance: 0.05 &bull; OK</div>
+                </div>
+
+                <div class="ch-stat-box box-delta">
+                  <div class="ch-stat-label">CHANNEL DELTA (|&Delta;T|)</div>
+                  <div class="ch-stat-num" id="hud-val-delta">0.15<span class="unit">&deg;C</span></div>
+                  <div class="ch-stat-sub">Tolerance: &plusmn;1.20 &deg;C</div>
+                </div>
+
+                <div class="ch-stat-box box-rate">
+                  <div class="ch-stat-label">RATE OF CHANGE (dT/dt)</div>
+                  <div class="ch-stat-num" id="hud-val-rate">+0.02<span class="unit">&deg;C/s</span></div>
+                  <div class="ch-stat-sub" id="hud-rate-sub">Steady State</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Row: Waveform Chart (Left) + Plausibility Checks (Right) -->
+          <div class="telemetry-bottom-grid">
+            <div class="panel-card chart-panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-heading">Live Temperature Plots &bull; Sensor A vs. Sensor B</h3>
+                  <span class="panel-subheading">Continuous multi-rate plausibility corridor &amp; consensus monitoring</span>
+                </div>
+                
+                <div class="chart-controls-group">
+                  <div class="chart-legend-box">
+                    <span class="legend-chip chip-a"></span> <span>Sensor A</span>
+                    <span class="legend-chip chip-b"></span> <span>Sensor B</span>
+                    <span class="legend-chip chip-consensus"></span> <span>Consensus</span>
+                    <span class="legend-chip chip-envelope"></span> <span>Corridor</span>
+                  </div>
+                  <div class="time-btn-group">
+                    <button class="btn-time active" data-sec="30">30s</button>
+                    <button class="btn-time" data-sec="60">60s</button>
+                    <button class="btn-time" data-sec="120">120s</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="canvas-holder">
+                <canvas id="telemetry-canvas"></canvas>
+                <div class="canvas-inspector" id="chart-crosshair-hud">
+                  <span id="canvas-hud-text">Inspect: Move cursor over chart</span>
+                </div>
+              </div>
+
+              <div class="chart-footer-metrics">
+                <div><span class="lbl">ADC Sampling:</span> <strong id="hz-indicator">10.0 Hz</strong></div>
+                <div><span class="lbl">Tolerance Boundary:</span> <strong id="corridor-indicator">&plusmn;1.20 &deg;C</strong></div>
+                <div><span class="lbl">Samples Recorded:</span> <strong id="datapoints-counter">0</strong></div>
+              </div>
+            </div>
+
+            <div class="panel-card matrix-panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-heading">Plausibility Diagnostic Matrix</h3>
+                  <span class="panel-subheading">Real-time transducer failure mode verification</span>
+                </div>
+                <span class="badge-mini">4 CHECKS</span>
+              </div>
+
+              <div class="matrix-cards-list">
+                <div class="matrix-row" id="chk-open-row">
+                  <div class="m-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+                  </div>
+                  <div class="m-text">
+                    <strong class="m-title">Open-Circuit / Rail Boundary</strong>
+                    <span class="m-desc">Saturation guard (0V / 3.3V out-of-range detection)</span>
+                  </div>
+                  <span class="status-pill-pass" id="badge-chk-open">PASS</span>
+                </div>
+
+                <div class="matrix-row" id="chk-drift-row">
+                  <div class="m-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                  </div>
+                  <div class="m-text">
+                    <strong class="m-title">Asymmetric Drift Detector</strong>
+                    <span class="m-desc">Continuous cumulative divergence without rate shift</span>
+                  </div>
+                  <span class="status-pill-pass" id="badge-chk-drift">PASS (0.02&deg;C/m)</span>
+                </div>
+
+                <div class="matrix-row" id="chk-stuck-row">
+                  <div class="m-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+                  </div>
+                  <div class="m-text">
+                    <strong class="m-title">Frozen / Stuck-at Value</strong>
+                    <span class="m-desc">Zero-variance identification during process excitation</span>
+                  </div>
+                  <span class="status-pill-pass" id="badge-chk-stuck">PASS (DYNAMIC)</span>
+                </div>
+
+                <div class="matrix-row" id="chk-noise-row">
+                  <div class="m-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h2l3-7 4 14 3-7 2 4 4-4h4"/></svg>
+                  </div>
+                  <div class="m-text">
+                    <strong class="m-title">Signal-to-Noise Ratio &amp; Jitter</strong>
+                    <span class="m-desc">Rolling statistical variance and high EMI bounds</span>
+                  </div>
+                  <span class="status-pill-pass" id="badge-chk-noise">38 dB (CLEAN)</span>
+                </div>
+              </div>
+
+              <div class="engine-verdict-box">
+                <div class="ev-title">DIAGNOSTIC ENGINE CONCLUSION</div>
+                <div class="ev-body" id="hud-verdict-summary">
+                  All physical and statistical checks passed. Measurements are calibrated and verified.
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ===============================================================
+           PAGE: 3D DIGITAL TWIN (circuit-board.glb)
+           =============================================================== -->
+      <section class="page-container" id="page-digital-twin">
+        <div class="twin-grid-layout">
+          
+          <div class="panel-card twin-viewport-panel">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-heading">Embedded Hardware 3D Digital Twin</h3>
+                <span class="panel-subheading">Interactive 3D model with 4 active sensor probe nodes mapped to the circuit board</span>
+              </div>
+              <div class="twin-toolbar-actions">
+                <button class="btn btn-sm btn-secondary" id="btn-camera-iso">Isometric</button>
+                <button class="btn btn-sm btn-secondary" id="btn-camera-top">Top View</button>
+                <button class="btn btn-sm btn-secondary" id="btn-focus-sensor-a">Sensor A Node</button>
+                <button class="btn btn-sm btn-secondary" id="btn-focus-sensor-b">Sensor B Node</button>
+                <button class="btn btn-sm btn-secondary" id="btn-reset-camera">Reset View</button>
+              </div>
+            </div>
+
+            <div class="three-canvas-container" id="viewport-3d-box">
+              <canvas id="canvas-3d"></canvas>
+              
+              <!-- Floating Overlays on 3D Viewport (4 Probes) -->
+              <div class="twin-floating-overlay">
+                <div class="probe-hud-card probe-card-a">
+                  <div class="ph-label">S1: DISCONNECTED</div>
+                  <div class="ph-val" id="twin-val-a">DISC</div>
+                  <div class="ph-status status-red" id="twin-status-a">OPEN CIRCUIT</div>
+                </div>
+
+                <div class="probe-hud-card probe-card-b">
+                  <div class="ph-label">S2: CRASHED</div>
+                  <div class="ph-val" id="twin-val-b">24.50 &deg;C</div>
+                  <div class="ph-status status-orange" id="twin-status-b">FROZEN (STUCK)</div>
+                </div>
+
+                <div class="probe-hud-card probe-card-c">
+                  <div class="ph-label">S3: WRONG READING</div>
+                  <div class="ph-val" id="twin-val-c">37.20 &deg;C</div>
+                  <div class="ph-status status-purple" id="twin-status-c">+12.4&deg;C OUTLIER</div>
+                </div>
+
+                <div class="probe-hud-card probe-card-d">
+                  <div class="ph-label">S4: SUCCESSFUL (TRUTH)</div>
+                  <div class="ph-val" id="twin-val-d">24.85 &deg;C</div>
+                  <div class="ph-status status-green" id="twin-status-d">CALIBRATED &bull; ACTIVE</div>
+                </div>
+
+                <div class="three-help-tag">
+                  Rotate: Left Click + Drag &bull; Pan: Right Click + Drag &bull; Zoom: Scroll
+                </div>
+              </div>
+
+              <div class="twin-loading-cover" id="twin-loader">
+                <div class="clean-spinner"></div>
+                <span>Loading 3D Circuit Board Model (circuit-board.glb)...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Component Specifications Drawer -->
+          <div class="panel-card twin-specs-panel">
+            <div class="panel-header">
+              <h3 class="panel-heading">Demonstration Rig Architecture</h3>
+            </div>
+
+            <div class="comp-specs-list">
+              <div class="spec-card-item">
+                <div class="sci-head">
+                  <span class="sci-badge">U1</span>
+                  <strong>Microcontroller Core</strong>
+                  <span class="sci-tag tag-green">ONLINE</span>
+                </div>
+                <div class="sci-desc">ESP32 32-bit Xtensa Dual-Core @ 240MHz. 12-bit SAR ADC (ADC1). Quad low-latency sampling firmware.</div>
+              </div>
+
+              <div class="spec-card-item">
+                <div class="sci-head">
+                  <span class="sci-badge">S1</span>
+                  <strong>Sensor 1 (Disconnected)</strong>
+                  <span class="sci-tag tag-red">DISCONNECTED</span>
+                </div>
+                <div class="sci-desc">Wire severed simulation. ADC drops to ground rail (0V). Isolated by SENSEGuard boundary guard.</div>
+              </div>
+
+              <div class="spec-card-item">
+                <div class="sci-head">
+                  <span class="sci-badge">S2</span>
+                  <strong>Sensor 2 (Crashed)</strong>
+                  <span class="sci-tag tag-amber">FROZEN</span>
+                </div>
+                <div class="sci-desc">I2C / ADC buffer crash simulation. Zero variance detected on excitation.</div>
+              </div>
+
+              <div class="spec-card-item">
+                <div class="sci-head">
+                  <span class="sci-badge">S3</span>
+                  <strong>Sensor 3 (Wrong Reading)</strong>
+                  <span class="sci-tag tag-purple">BIASED OUTLIER</span>
+                </div>
+                <div class="sci-desc">Calibration bias fault (+12.5&deg;C discrepancy) rejected by median consensus filter.</div>
+              </div>
+
+              <div class="spec-card-item">
+                <div class="sci-head">
+                  <span class="sci-badge">S4</span>
+                  <strong>Sensor 4 (Successful)</strong>
+                  <span class="sci-tag tag-green">ELECTED TRUTH</span>
+                </div>
+                <div class="sci-desc">Fully verified, low-noise, healthy ground truth reference elected as system output.</div>
+              </div>
+            </div>
+
+            <div class="coupling-box">
+              <div class="cb-label">QUAD ARBITRATION EFFICIENCY</div>
+              <div class="cb-progress-bar">
+                <div class="cb-bar-fill" style="width: 100%;"></div>
+              </div>
+              <div class="cb-meta">
+                <span>Faults Isolated: 3 / 3</span>
+                <span>System Availability: 100.0%</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ===============================================================
+           PAGE: FAULT INJECTION SANDBOX
+           =============================================================== -->
+      <section class="page-container" id="page-bench">
+        <div class="sandbox-layout">
+          <div class="panel-card">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-heading">Interactive Sensor-Fault Sandbox &bull; Selectable Scenarios</h3>
+                <span class="panel-subheading">Select a fault condition to observe SENSEGuard's classification and detection delay</span>
+              </div>
+              <button class="btn btn-secondary" id="btn-bench-reset-all">Reset to Nominal Baseline</button>
+            </div>
+
+            <div class="scenario-deck-grid">
+              <div class="scen-box active" data-scenario="nominal" id="scen-card-nominal">
+                <div class="sb-top">
+                  <span class="sb-num">SCENARIO 01</span>
+                  <span class="sb-pill pill-green">BASELINE</span>
+                </div>
+                <h4 class="sb-title">Nominal Baseline Operation</h4>
+                <p class="sb-text">All sensors track synchronously on common thermal mass. Minor ambient variance (&lt;0.05&deg;C). Trust Score stays at 98%+.</p>
+                <button class="btn btn-sm btn-scenario-act">Activate Nominal</button>
+              </div>
+
+              <div class="scen-box" data-scenario="process_surge" id="scen-card-process">
+                <div class="sb-top">
+                  <span class="sb-num">SCENARIO 02</span>
+                  <span class="sb-pill pill-amber">REAL PROCESS EVENT</span>
+                </div>
+                <h4 class="sb-title">Heater Pulse / Thermal Shock</h4>
+                <p class="sb-text">Real process temperature jumps +12&deg;C rapidly. BOTH sensors surge together (dT/dt &gt; 0.8&deg;C/s). SENSEGuard flags PROCESS ALERT, NOT sensor fault!</p>
+                <button class="btn btn-sm btn-scenario-act">Inject Process Surge</button>
+              </div>
+
+              <div class="scen-box" data-scenario="sensor_drift" id="scen-card-drift">
+                <div class="sb-top">
+                  <span class="sb-num">SCENARIO 03</span>
+                  <span class="sb-pill pill-red">TRANSDUCER FAULT</span>
+                </div>
+                <h4 class="sb-title">Sensor B Calibration Drift</h4>
+                <p class="sb-text">Sensor B develops dynamic bias creep (+0.3&deg;C/s) while Sensor A remains steady. Triggers Transducer Drift alarm and isolates Channel B.</p>
+                <button class="btn btn-sm btn-scenario-act">Inject Sensor Drift</button>
+              </div>
+
+              <div class="scen-box" data-scenario="open_circuit" id="scen-card-open">
+                <div class="sb-top">
+                  <span class="sb-num">SCENARIO 04</span>
+                  <span class="sb-pill pill-red">DISCONNECTION</span>
+                </div>
+                <h4 class="sb-title">Open-Circuit / Wire Disconnect</h4>
+                <p class="sb-text">Sensor A wire pulled. ADC drops to ground rail (0V / -999&deg;C). System instantly isolates Sensor A without system crashing.</p>
+                <button class="btn btn-sm btn-scenario-act">Simulate Wire Pull</button>
+              </div>
+
+              <div class="scen-box" data-scenario="sensor_stuck" id="scen-card-stuck">
+                <div class="sb-top">
+                  <span class="sb-num">SCENARIO 05</span>
+                  <span class="sb-pill pill-red">STUCK VALUE</span>
+                </div>
+                <h4 class="sb-title">Sensor A Frozen / Stuck-at</h4>
+                <p class="sb-text">Sensor A is locked at 25.0&deg;C while real process warms to 34&deg;C. Zero variance detected on Sensor A under excitation flags stuck-at fault.</p>
+                <button class="btn btn-sm btn-scenario-act">Simulate Stuck Sensor</button>
+              </div>
+
+              <div class="scen-box" data-scenario="noise_burst" id="scen-card-noise">
+                <div class="sb-top">
+                  <span class="sb-num">SCENARIO 06</span>
+                  <span class="sb-pill pill-purple">NOISE SPIKE</span>
+                </div>
+                <h4 class="sb-title">High EMI / Loose Terminal</h4>
+                <p class="sb-text">Severe high-frequency jitter (&plusmn;3.5&deg;C) injected into measurement. System classifies state as UNCERTAIN until noise floor stabilizes.</p>
+                <button class="btn btn-sm btn-scenario-act">Inject Noise Burst</button>
+              </div>
+            </div>
+
+            <div class="sliders-deck-bar">
+              <div class="slider-item">
+                <div class="slider-header-text">
+                  <label for="range-ambient">Base Ambient Process Temperature:</label>
+                  <span class="slider-val-readout" id="lbl-ambient">25.0 &deg;C</span>
+                </div>
+                <input type="range" id="range-ambient" min="10" max="85" value="25" step="0.5">
+              </div>
+
+              <div class="slider-item">
+                <div class="slider-header-text">
+                  <label for="range-corridor">Dynamic Delta Threshold (|&Delta;T| limit):</label>
+                  <span class="slider-val-readout" id="lbl-corridor">&plusmn;1.20 &deg;C</span>
+                </div>
+                <input type="range" id="range-corridor" min="0.4" max="4.0" value="1.2" step="0.1">
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===============================================================
+           PAGE: ALERT HISTORY & TEST SUMMARY
+           =============================================================== -->
+      <section class="page-container" id="page-analytics">
+        <div class="analytics-layout">
+          <div class="test-summary-grid">
+            <div class="summary-kpi-card">
+              <span class="kpi-title">TOTAL SAMPLES LOGGED</span>
+              <span class="kpi-big-num val-blue" id="kpi-total-samples">0</span>
+              <span class="kpi-foot">Continuous 10 Hz session</span>
+            </div>
+
+            <div class="summary-kpi-card">
+              <span class="kpi-title">DETECTION DELAY (LATENCY)</span>
+              <span class="kpi-big-num val-green" id="kpi-detection-delay">&lt; 84 ms</span>
+              <span class="kpi-foot">Single-cycle algorithmic decision</span>
+            </div>
+
+            <div class="summary-kpi-card">
+              <span class="kpi-title">FALSE ALARM RATE</span>
+              <span class="kpi-big-num val-green" id="kpi-false-alarm-rate">0.0 %</span>
+              <span class="kpi-foot">Zero false shutdowns on process surge</span>
+            </div>
+
+            <div class="summary-kpi-card">
+              <span class="kpi-title">SIGNAL-TO-NOISE RATIO</span>
+              <span class="kpi-big-num val-blue" id="kpi-snr">38.4 dB</span>
+              <span class="kpi-foot">Optimal measurement cleanliness</span>
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-heading">Diagnosis Status &amp; Alert History</h3>
+                <span class="panel-subheading">Chronological event trail with classification and detection notes</span>
+              </div>
+              <div class="log-actions-bar">
+                <button class="btn btn-sm btn-secondary" id="btn-clear-audit">Clear Log</button>
+                <button class="btn btn-sm btn-secondary" id="btn-export-json">Export JSON</button>
+                <button class="btn btn-sm btn-primary" id="btn-export-csv-2">Export CSV</button>
+              </div>
+            </div>
+
+            <div class="table-scroll-box">
+              <table class="clean-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Diagnosis Classification</th>
+                    <th>S1 Disconnected</th>
+                    <th>S2 Crashed</th>
+                    <th>S3 Wrong</th>
+                    <th>S4 Healthy</th>
+                    <th>Trust Score</th>
+                    <th>Diagnostic Annotation &amp; Arbitration</th>
+                  </tr>
+                </thead>
+                <tbody id="audit-table-body">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===============================================================
+           PAGE: ESP32 HARDWARE & CODE
+           =============================================================== -->
+      <section class="page-container" id="page-hardware">
+        <div class="hardware-grid-layout">
+          <div class="panel-card">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-heading">Hardware Pinout &amp; Rig Specification</h3>
+                <span class="panel-subheading">Quad ADC configuration for ESP32</span>
+              </div>
+            </div>
+
+            <div class="table-scroll-box">
+              <table class="clean-table">
+                <thead>
+                  <tr>
+                    <th>ESP32 Pin</th>
+                    <th>Signal Function</th>
+                    <th>Channel Assignment</th>
+                    <th>Electrical Characteristics</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>GPIO 34 (ADC1_CH6)</strong></td>
+                    <td>Sensor 1 Analog In</td>
+                    <td>Transducer Channel 1</td>
+                    <td>0.0V - 3.3V (11dB Attenuation, 12-bit SAR ADC)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>GPIO 35 (ADC1_CH7)</strong></td>
+                    <td>Sensor 2 Analog In</td>
+                    <td>Transducer Channel 2</td>
+                    <td>0.0V - 3.3V (11dB Attenuation, 12-bit SAR ADC)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>GPIO 32 (ADC1_CH4)</strong></td>
+                    <td>Sensor 3 Analog In</td>
+                    <td>Transducer Channel 3</td>
+                    <td>0.0V - 3.3V (11dB Attenuation, 12-bit SAR ADC)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>GPIO 33 (ADC1_CH5)</strong></td>
+                    <td>Sensor 4 Analog In</td>
+                    <td>Transducer Channel 4</td>
+                    <td>0.0V - 3.3V (11dB Attenuation, 12-bit SAR ADC)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-heading">ESP32 Firmware Source (Arduino / C++)</h3>
+                <span class="panel-subheading">Production quad-channel acquisition code</span>
+              </div>
+              <button class="btn btn-sm btn-secondary" id="btn-copy-hardware-code">Copy Firmware Code</button>
+            </div>
+
+            <div class="code-box-clean">
+              <pre><code id="hardware-code-content">// =====================================================================
+// SENSEGuard Quad-Channel Sensor Telemetry Firmware
+// Designed for ESP32 / Arduino (Baud Rate: 115200)
+// Team BYTECRAFT - Ideathon 10.0 (AICF)
+// =====================================================================
+
+const int PIN_S1 = 34; // ADC1_CH6 (Sensor 1)
+const int PIN_S2 = 35; // ADC1_CH7 (Sensor 2)
+const int PIN_S3 = 32; // ADC1_CH4 (Sensor 3)
+const int PIN_S4 = 33; // ADC1_CH5 (Sensor 4)
+
+void setup() {
+  Serial.begin(115200);
+  analogReadResolution(12); // 12-bit ADC (0 - 4095)
+  delay(1000);
+  Serial.println("{\"status\":\"ESP32_QUAD_READY\",\"version\":\"2.2\"}");
+}
+
+float readTemperature(int pin) {
+  int raw = analogRead(pin);
+  if (raw < 15 || raw > 4080) return -999.0; // Open Circuit
+  float voltage = (raw / 4095.0) * 3.3;
+  return voltage * 100.0;
+}
+
+void loop() {
+  float s1 = readTemperature(PIN_S1);
+  float s2 = readTemperature(PIN_S2);
+  float s3 = readTemperature(PIN_S3);
+  float s4 = readTemperature(PIN_S4);
+
+  Serial.print("{\"s1\":"); Serial.print(s1, 2);
+  Serial.print(",\"s2\":"); Serial.print(s2, 2);
+  Serial.print(",\"s3\":"); Serial.print(s3, 2);
+  Serial.print(",\"s4\":"); Serial.print(s4, 2);
+  Serial.print(",\"t\":"); Serial.print(millis());
+  Serial.println("}");
+
+  delay(100); // 10 Hz sampling rate
+}</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Clean Light Footer -->
+    <footer class="app-footer-clean">
+      <div>
+        <strong>SENSEGuard Project</strong> &bull; Ideathon 10.0 &bull; AICF Incubation Foundation (Government College of Engineering Aurangabad)
+      </div>
+      <div>
+        Team BYTECRAFT: <span>Sabarish R</span> &amp; <span>Sahana M S</span> &bull; Contact: <a href="mailto:sabarishr267@gmail.com">sabarishr267@gmail.com</a>
+      </div>
+    </footer>
+
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
