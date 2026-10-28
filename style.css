@@ -1262,7 +1262,9 @@ body.audio-off .icon-sound-off { display: block; }
   position: absolute;
   top: 0; left: 0;
   width: 100%; height: 100%;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1270,13 +1272,21 @@ body.audio-off .icon-sound-off { display: block; }
   gap: 12px;
   font-size: 13px;
   color: var(--text-body);
-  z-index: 5;
+  z-index: 60;
   transition: opacity 0.3s ease;
+}
+
+.theme-dark .twin-loading-cover {
+  background: rgba(8, 12, 20, 0.95);
 }
 
 .twin-loading-cover.loaded {
   opacity: 0;
   pointer-events: none;
+}
+
+.twin-loading-cover:not(.loaded) ~ .twin-spatial-pins-container {
+  display: none !important;
 }
 
 .clean-spinner {
@@ -2913,15 +2923,17 @@ body.audio-off .icon-sound-off { display: block; }
 .twin-advanced-controls-bar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 16px;
+  gap: 16px;
+  padding: 8px 14px;
   background: var(--bg-subtle);
-  border-bottom: 1px solid var(--border-light);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
   flex-wrap: wrap;
 }
 
 .twin-ctrl-item {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
 }
@@ -2933,8 +2945,10 @@ body.audio-off .icon-sound-off { display: block; }
   color: var(--text-muted);
 }
 
-.slider-sm {
-  width: 90px;
+.twin-ctrl-item .slider-sm {
+  width: 90px !important;
+  max-width: 90px !important;
+  flex: 0 0 90px !important;
 }
 
 /* 3D Spatial HTML Pins Layer */
@@ -2955,9 +2969,20 @@ body.audio-off .icon-sound-off { display: block; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: auto;
   cursor: pointer;
+  z-index: 26;
+}
+
+.spatial-pin.pin-stem-down {
+  transform: translate(-50%, 6px);
+  flex-direction: column-reverse;
+}
+
+.spatial-pin.pin-stem-down .sp-card {
+  margin-top: 5px;
+  margin-bottom: 0;
 }
 
 .spatial-pin.hidden {
@@ -2965,13 +2990,14 @@ body.audio-off .icon-sound-off { display: block; }
 }
 
 .sp-dot {
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: #38BDF8;
   border: 2px solid #FFFFFF;
   box-shadow: 0 0 10px rgba(56, 189, 248, 0.9);
   animation: pulseDot 2s infinite ease-in-out;
+  flex-shrink: 0;
 }
 
 .pin-s1 .sp-dot { background: #EF4444; box-shadow: 0 0 10px #EF4444; }
@@ -2980,19 +3006,39 @@ body.audio-off .icon-sound-off { display: block; }
 .pin-s4 .sp-dot { background: #10B981; box-shadow: 0 0 10px #10B981; }
 
 .sp-card {
-  margin-bottom: 6px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  box-shadow: var(--shadow-md);
+  margin-bottom: 5px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border-medium);
+  border-radius: 20px;
+  padding: 3px 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   text-align: center;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: auto;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.theme-dark .sp-card {
+  background: rgba(15, 23, 42, 0.92);
+  border-color: rgba(51, 65, 85, 0.85);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+
+.sp-card:hover {
+  transform: scale(1.08);
+  border-color: var(--color-consensus);
+  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.3);
+  z-index: 40;
 }
 
 .sp-title {
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 700;
   color: var(--text-muted);
   letter-spacing: 0.5px;
@@ -3000,8 +3046,8 @@ body.audio-off .icon-sound-off { display: block; }
 
 .sp-val {
   font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 10.5px;
+  font-weight: 800;
   color: var(--text-dark);
 }
 

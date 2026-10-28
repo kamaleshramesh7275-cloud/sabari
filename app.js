@@ -191,14 +191,14 @@ class SENSEGuardApp {
       shadowsEnabled: true,
       originalMeshPositions: new Map(),
       spatialPinCoords: {
-        s1: new THREE.Vector3(-1.8, 2.2, 1.2),
-        s2: new THREE.Vector3(-0.6, 2.2, 1.2),
-        s3: new THREE.Vector3(0.6, 2.2, 1.2),
-        s4: new THREE.Vector3(1.8, 2.2, 1.2),
-        esp32: new THREE.Vector3(0, 1.2, 0),
-        scope: new THREE.Vector3(-6.2, 4.5, -0.8),
-        powersupply: new THREE.Vector3(6.2, 4.5, -0.8),
-        heatsink: new THREE.Vector3(3.8, 2.2, 0.6)
+        s1: new THREE.Vector3(-6.2, 2.2, 3.2),
+        s2: new THREE.Vector3(-2.1, 2.2, 3.2),
+        s3: new THREE.Vector3(2.1, 2.2, 3.2),
+        s4: new THREE.Vector3(6.2, 2.2, 3.2),
+        esp32: new THREE.Vector3(0.0, 2.5, -0.5),
+        scope: new THREE.Vector3(-7.5, 6.2, -1.8),
+        powersupply: new THREE.Vector3(7.5, 6.2, -1.8),
+        heatsink: new THREE.Vector3(6.5, 2.8, 1.0)
       },
       pipScene: null,
       pipCamera: null,
@@ -1076,7 +1076,7 @@ class SENSEGuardApp {
   }
 
   render3DSpatialPins() {
-    if (!this.three.camera || !this.three.spatialPinsVisible) {
+    if (!this.three.camera || !this.three.spatialPinsVisible || !this.three.isLoaded) {
       document.querySelectorAll('.spatial-pin').forEach(pin => pin.classList.add('hidden'));
       return;
     }
@@ -1085,6 +1085,8 @@ class SENSEGuardApp {
     if (!container) return;
     const rect = container.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
+
+    const placedPins = [];
 
     for (const [key, coords] of Object.entries(this.three.spatialPinCoords)) {
       const pinEl = document.getElementById(`spin-${key}`);
@@ -1099,15 +1101,40 @@ class SENSEGuardApp {
       v.project(this.three.camera);
 
       // Hide if behind camera or too far off-screen
-      if (v.z > 1.0 || v.z < -1.0 || Math.abs(v.x) > 1.25 || Math.abs(v.y) > 1.25) {
+      if (v.z > 1.0 || v.z < -1.0 || Math.abs(v.x) > 1.15 || Math.abs(v.y) > 1.15) {
         pinEl.classList.add('hidden');
-      } else {
-        pinEl.classList.remove('hidden');
-        const x = (v.x * 0.5 + 0.5) * rect.width;
-        const y = (-(v.y * 0.5) + 0.5) * rect.height;
-        pinEl.style.left = `${x}px`;
-        pinEl.style.top = `${y}px`;
+        continue;
       }
+
+      pinEl.classList.remove('hidden');
+      let x = (v.x * 0.5 + 0.5) * rect.width;
+      let y = (-(v.y * 0.5) + 0.5) * rect.height;
+
+      // Keep within comfortable viewport bounds
+      x = Math.max(30, Math.min(rect.width - 30, x));
+      y = Math.max(30, Math.min(rect.height - 30, y));
+
+      // 2D Collision Avoidance: if close to another pin, alternate vertical offset
+      let flipStem = false;
+      for (const other of placedPins) {
+        const dx = Math.abs(x - other.x);
+        const dy = Math.abs(y - other.y);
+        if (dx < 115 && dy < 38) {
+          flipStem = true;
+          break;
+        }
+      }
+
+      if (flipStem) {
+        pinEl.classList.add('pin-stem-down');
+      } else {
+        pinEl.classList.remove('pin-stem-down');
+      }
+
+      pinEl.style.left = `${x}px`;
+      pinEl.style.top = `${y}px`;
+
+      placedPins.push({ x, y, el: pinEl });
     }
   }
 
@@ -2543,6 +2570,139 @@ class SENSEGuardApp {
         btn.classList.toggle('active');
         this.toggleSubsystemWireframe(target);
       });
+    });
+
+    // -------------------------------------------------------------
+    // Page 1: Quad-Sensor Benchmark Controls & Overrides
+    // -------------------------------------------------------------
+    // Trigger Triple-Fault Stress State
+    document.getElementById('btn-trigger-quad-scenario')?.addEventListener('click', () => {
+      this.applyScenario('triple');
+      this.playAlarmChime();
+    });
+
+    // Restore Quad Nominal Calibration
+    document.getElementById('btn-reset-quad-nominal')?.addEventListener('click', () => {
+      this.applyScenario('nominal');
+      this.playSuccessChime();
+    });
+
+    // Individual Sensor Channel Fault Injection Toggles
+    document.getElementById('toggle-s1')?.addEventListener('click', () => {
+      this.quadState.s1Fault = (this.quadState.s1Fault === 'DISCONNECTED') ? 'HEALTHY' : 'DISCONNECTED';
+      this.diagnostics.s1Disconnected = (this.quadState.s1Fault === 'DISCONNECTED');
+      this.addLogEntry(this.quadState.s1Fault === 'HEALTHY' ? 'NORMAL' : 'FAULT', 'S1', null, null, null, this.calculateTrustScore(), `Manual operator override: Sensor 1 toggled to ${this.quadState.s1Fault}.`);
+      this.playRelayClick();
+    });
+
+    document.getElementById('toggle-s2')?.addEventListener('click', () => {
+      this.quadState.s2Fault = (this.quadState.s2Fault === 'CRASHED') ? 'HEALTHY' : 'CRASHED';
+      this.diagnostics.s2Crashed = (this.quadState.s2Fault === 'CRASHED');
+      this.addLogEntry(this.quadState.s2Fault === 'HEALTHY' ? 'NORMAL' : 'FAULT', 'S2', null, null, null, this.calculateTrustScore(), `Manual operator override: Sensor 2 toggled to ${this.quadState.s2Fault}.`);
+      this.playRelayClick();
+    });
+
+    document.getElementById('toggle-s3')?.addEventListener('click', () => {
+      this.quadState.s3Fault = (this.quadState.s3Fault === 'WRONG') ? 'HEALTHY' : 'WRONG';
+      this.diagnostics.s3Wrong = (this.quadState.s3Fault === 'WRONG');
+      this.addLogEntry(this.quadState.s3Fault === 'HEALTHY' ? 'NORMAL' : 'FAULT', 'S3', null, null, null, this.calculateTrustScore(), `Manual operator override: Sensor 3 toggled to ${this.quadState.s3Fault}.`);
+      this.playRelayClick();
+    });
+
+    document.getElementById('toggle-s4')?.addEventListener('click', () => {
+      this.quadState.s4Fault = (this.quadState.s4Fault === 'HEALTHY') ? 'FAULT' : 'HEALTHY';
+      this.diagnostics.s4Healthy = (this.quadState.s4Fault === 'HEALTHY');
+      this.addLogEntry(this.quadState.s4Fault === 'HEALTHY' ? 'NORMAL' : 'FAULT', 'S4', null, null, null, this.calculateTrustScore(), `Manual operator override: Sensor 4 toggled to ${this.quadState.s4Fault}.`);
+      this.playRelayClick();
+    });
+
+    // Timebase Selector in Page 1 (30s, 60s, 120s)
+    document.querySelectorAll('#page-quad .btn-time').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#page-quad .btn-time').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.config.windowDurationSec = parseInt(btn.dataset.sec, 10);
+        this.playRelayClick();
+      });
+    });
+
+    // -------------------------------------------------------------
+    // Page 4: Oscilloscope Trigger Modes & Visual Toggles
+    // -------------------------------------------------------------
+    ['auto', 'norm', 'single'].forEach(mode => {
+      document.getElementById(`trig-${mode}`)?.addEventListener('click', () => {
+        ['auto', 'norm', 'single'].forEach(m => document.getElementById(`trig-${m}`)?.classList.remove('active'));
+        document.getElementById(`trig-${mode}`)?.classList.add('active');
+        this.scope.triggerMode = mode;
+        this.playRelayClick();
+      });
+    });
+
+    document.getElementById('btn-toggle-cursors')?.addEventListener('click', () => {
+      this.scope.cursorMode = !this.scope.cursorMode;
+      const btn = document.getElementById('btn-toggle-cursors');
+      if (btn) btn.textContent = `Cursors: ${this.scope.cursorMode ? 'ON' : 'OFF'}`;
+      this.playRelayClick();
+    });
+
+    document.getElementById('btn-toggle-fft')?.addEventListener('click', () => {
+      const fftCard = document.getElementById('bench-fft-canvas')?.closest('.panel-card');
+      if (fftCard) {
+        fftCard.style.display = fftCard.style.display === 'none' ? '' : 'none';
+        const isVisible = fftCard.style.display !== 'none';
+        const btn = document.getElementById('btn-toggle-fft');
+        if (btn) btn.textContent = `FFT: ${isVisible ? 'ON' : 'OFF'}`;
+      }
+      this.playRelayClick();
+    });
+
+    // Scenario Activate Buttons in Matrix Cards
+    document.querySelectorAll('.scen-box .btn-scenario-act').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const box = btn.closest('.scen-box');
+        if (box && box.dataset.scenario) {
+          this.applyScenario(box.dataset.scenario);
+        }
+      });
+    });
+
+    // -------------------------------------------------------------
+    // Page 5: Alert History JSON Exporter
+    // -------------------------------------------------------------
+    document.getElementById('btn-export-json')?.addEventListener('click', () => {
+      const jsonStr = JSON.stringify(this.eventLogs, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `SENSEGuard_Audit_Log_${Date.now()}.json`;
+      a.click();
+      this.playSuccessChime();
+    });
+
+    // -------------------------------------------------------------
+    // Page 6: Copy Firmware Code to Clipboard
+    // -------------------------------------------------------------
+    document.getElementById('btn-copy-hardware-code')?.addEventListener('click', () => {
+      const codeEl = document.querySelector('#page-hardware pre code') || document.querySelector('#page-hardware pre');
+      const textToCopy = codeEl ? codeEl.innerText : '';
+      if (textToCopy) {
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          const btn = document.getElementById('btn-copy-hardware-code');
+          if (btn) {
+            const orig = btn.textContent;
+            btn.textContent = '✓ Copied to Clipboard!';
+            btn.classList.add('btn-primary');
+            this.playSuccessChime();
+            setTimeout(() => {
+              btn.textContent = orig;
+              btn.classList.remove('btn-primary');
+            }, 2500);
+          }
+        }).catch(() => {
+          alert('Firmware code copied to clipboard.');
+        });
+      }
     });
 
     // WebSerial Connect Toggle
