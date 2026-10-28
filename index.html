@@ -18,7 +18,7 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
-<body class="theme-light">
+<body class="theme-dark audio-on">
   <div class="app-wrapper">
     
     <!-- Top Header -->
@@ -71,6 +71,29 @@
 
       <!-- Action Buttons -->
       <div class="header-actions">
+        <!-- Theme Toggle -->
+        <button class="btn btn-icon-round" id="btn-theme-toggle" title="Toggle Theme (Cyber Dark / Clean Lab Light)">
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+
+        <!-- Audio Synthesizer Toggle -->
+        <button class="btn btn-icon-round" id="btn-audio-toggle" title="Lab Sound Effects (Synthesizer Chimes & Relays)">
+          <svg class="icon-sound-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          <svg class="icon-sound-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+        </button>
+
+        <!-- Unit Switcher -->
+        <button class="btn btn-sm btn-secondary" id="btn-unit-toggle" title="Toggle Units (°C, °F, K, Raw Volts)">
+          <span id="unit-badge-text">&deg;C</span>
+        </button>
+
+        <!-- Mini 3D PiP Toggle -->
+        <button class="btn btn-sm btn-secondary" id="btn-pip-toggle" title="Toggle Floating 3D Twin Viewport">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><rect x="12" y="9" width="8" height="6" rx="1"/></svg>
+          <span>3D PiP</span>
+        </button>
+
         <div class="stream-badge" id="stream-status-pill">
           <span class="stream-dot" id="stream-dot"></span>
           <span id="stream-mode-text">Simulation Mode (10 Hz)</span>
@@ -461,129 +484,308 @@
       </section>
 
       <!-- ===============================================================
-           PAGE: 3D DIGITAL TWIN (circuit-board.glb)
+           PAGE: 3D DIGITAL TWIN (benchtwin-project-2.glb + circuit-board.glb)
            =============================================================== -->
       <section class="page-container" id="page-digital-twin">
-        <div class="twin-grid-layout">
+        <div class="twin-page-wrapper">
           
-          <div class="panel-card twin-viewport-panel">
-            <div class="panel-header">
-              <div>
-                <h3 class="panel-heading">Embedded Hardware 3D Digital Twin</h3>
-                <span class="panel-subheading">Interactive 3D model with 4 active sensor probe nodes mapped to the circuit board</span>
+          <div class="twin-grid-layout">
+            
+            <div class="panel-card twin-viewport-panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-heading">Cyber-Physical 3D Digital Twin Studio</h3>
+                  <span class="panel-subheading">Interactive 3D workstation &amp; dual circuit twin with live probe telemetry, thermal shader &amp; raycasting</span>
+                </div>
+                
+                <!-- 3D Model Switcher Tabs -->
+                <div class="twin-model-switcher" id="twin-model-switcher">
+                  <button class="twin-model-tab active" data-model="bench" id="tab-model-bench">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                    <span>BenchTwin Workstation (3D Lab)</span>
+                  </button>
+                  <button class="twin-model-tab" data-model="pcb" id="tab-model-pcb">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                    <span>Circuit Micro-Board (ESP32)</span>
+                  </button>
+                </div>
+
+                <!-- Camera Vantage Presets & Visual Controls -->
+                <div class="twin-toolbar-actions">
+                  <div class="twin-btn-group">
+                    <button class="btn btn-sm btn-secondary" id="btn-camera-iso" title="Isometric Perspective">Isometric</button>
+                    <button class="btn btn-sm btn-secondary" id="btn-camera-front" title="Frontal Operator View">Frontal</button>
+                    <button class="btn btn-sm btn-secondary" id="btn-camera-probes" title="Focus on 4 Sensor Probes">Probe Array</button>
+                    <button class="btn btn-sm btn-secondary" id="btn-camera-top" title="Top-Down Orthographic">Top Schem</button>
+                    <button class="btn btn-sm btn-secondary" id="btn-camera-tour" title="Cinematic Auto-Tour Orbit">Cinematic Tour</button>
+                    <button class="btn btn-sm btn-secondary" id="btn-reset-camera" title="Reset Camera Vantage">Reset</button>
+                  </div>
+
+                  <div class="twin-btn-group">
+                    <button class="btn btn-sm btn-secondary" id="btn-toggle-heatmap" title="Toggle Procedural Thermal Heatmap">Heatmap: OFF</button>
+                    <button class="btn btn-sm btn-secondary" id="btn-toggle-wireframe" title="Toggle Wireframe Shading">Wireframe: OFF</button>
+                    <button class="btn btn-sm btn-secondary" id="btn-toggle-grid" title="Toggle Tactical Grid Helper">Grid: ON</button>
+                    <button class="btn btn-sm btn-secondary" id="btn-toggle-lighting" title="Cycle Lighting Rigs (Clean, Cyber Neon, Studio, Night)">Light: Clean</button>
+                  </div>
+                </div>
               </div>
-              <div class="twin-toolbar-actions">
-                <button class="btn btn-sm btn-secondary" id="btn-camera-iso">Isometric</button>
-                <button class="btn btn-sm btn-secondary" id="btn-camera-top">Top View</button>
-                <button class="btn btn-sm btn-secondary" id="btn-focus-sensor-a">Sensor A Node</button>
-                <button class="btn btn-sm btn-secondary" id="btn-focus-sensor-b">Sensor B Node</button>
-                <button class="btn btn-sm btn-secondary" id="btn-reset-camera">Reset View</button>
+
+              <!-- Quick-Focus Bench Hotspots Toolbar -->
+              <div class="twin-hotspots-bar">
+                <span class="th-label">HOTSPOT FOCUS:</span>
+                <button class="btn-hotspot active" data-target="overview">Full Lab Overview</button>
+                <button class="btn-hotspot" data-target="oscilloscope">Rig Oscilloscope</button>
+                <button class="btn-hotspot" data-target="powersupply">DC Power Supply</button>
+                <button class="btn-hotspot" data-target="multimeter">Bench Multimeter</button>
+                <button class="btn-hotspot" data-target="esp32">ESP32 Core (ADC)</button>
+                <button class="btn-hotspot" data-target="probes">Quad Probes Array</button>
+                <button class="btn-hotspot" data-target="heatsink">Thermal Heatsink</button>
+              </div>
+
+              <div class="three-canvas-container" id="viewport-3d-box">
+                <canvas id="canvas-3d"></canvas>
+                
+                <!-- Floating Overlays on 3D Viewport (4 Probes) -->
+                <div class="twin-floating-overlay">
+                  <div class="probe-hud-card probe-card-a" id="probe-hud-s1">
+                    <div class="ph-label">S1: PIN 34 &bull; DISCONNECTED</div>
+                    <div class="ph-val" id="twin-val-a">DISC</div>
+                    <div class="ph-status status-red" id="twin-status-a">0V OPEN CIRCUIT (&lt;15ms)</div>
+                  </div>
+
+                  <div class="probe-hud-card probe-card-b" id="probe-hud-s2">
+                    <div class="ph-label">S2: PIN 35 &bull; CRASHED</div>
+                    <div class="ph-val" id="twin-val-b">24.50 &deg;C</div>
+                    <div class="ph-status status-orange" id="twin-status-b">FROZEN (STUCK &sigma;&sup2;&lt;0.005)</div>
+                  </div>
+
+                  <div class="probe-hud-card probe-card-c" id="probe-hud-s3">
+                    <div class="ph-label">S3: PIN 32 &bull; WRONG READING</div>
+                    <div class="ph-val" id="twin-val-c">37.20 &deg;C</div>
+                    <div class="ph-status status-purple" id="twin-status-c">+12.4&deg;C BIASED OUTLIER</div>
+                  </div>
+
+                  <div class="probe-hud-card probe-card-d" id="probe-hud-s4">
+                    <div class="ph-label">S4: PIN 33 &bull; SUCCESSFUL TRUTH</div>
+                    <div class="ph-val" id="twin-val-d">24.85 &deg;C</div>
+                    <div class="ph-status status-green" id="twin-status-d">CALIBRATED &bull; ACTIVE OUTPUT</div>
+                  </div>
+
+                  <div class="three-help-tag">
+                    Left Click + Drag: Orbit &bull; Right Click + Drag: Pan &bull; Scroll: Zoom &bull; Click Hotspots to Focus
+                  </div>
+                </div>
+
+                <!-- Interactive Raycasting Component Inspection Flyout Card -->
+                <div class="twin-raycast-flyout" id="twin-raycast-card">
+                  <div class="rc-header">
+                    <span class="rc-tag" id="rc-subsystem">BENCH INSTRUMENTATION</span>
+                    <span class="rc-status-pill tag-green" id="rc-status">ACTIVE</span>
+                  </div>
+                  <div class="rc-title" id="rc-title">Digital Storage Oscilloscope Rig</div>
+                  <div class="rc-body" id="rc-desc">Four-channel 100MHz real-time sampling oscilloscope monitoring sensor probe test rails.</div>
+                  <div class="rc-specs-grid">
+                    <div><span class="lbl">Operating Temp:</span> <strong id="rc-temp">25.0 &deg;C</strong></div>
+                    <div><span class="lbl">Rail Voltage:</span> <strong id="rc-volt">3.30 V</strong></div>
+                    <div><span class="lbl">Signal Integrity:</span> <strong id="rc-integrity">99.4% (Optimal)</strong></div>
+                    <div><span class="lbl">Firmware:</span> <strong id="rc-firmware">v2.4-RTOS</strong></div>
+                  </div>
+                </div>
+
+                <!-- High-Tech Model Loading Screen -->
+                <div class="twin-loading-cover" id="twin-loader">
+                  <div class="clean-spinner"></div>
+                  <div class="loader-text-group">
+                    <span class="loader-title" id="twin-loader-title">Loading 3D Workstation Model (benchtwin-project-2.glb)...</span>
+                    <span class="loader-sub">Parsing 118 meshes, high-poly geometries &amp; PBR materials</span>
+                  </div>
+                  <div class="loader-progress-track">
+                    <div class="loader-progress-bar" id="twin-loader-bar" style="width: 45%;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3D Viewport Action Tools & Telemetry Strip -->
+              <div class="twin-viewport-footer">
+                <div class="twin-footer-actions">
+                  <button class="btn btn-sm btn-secondary" id="btn-twin-fullscreen" title="Toggle Fullscreen 3D View">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                    <span>Fullscreen 3D</span>
+                  </button>
+                  <button class="btn btn-sm btn-secondary" id="btn-twin-snapshot" title="Download High-Resolution PNG Snapshot">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    <span>Save Snapshot</span>
+                  </button>
+                  <button class="btn btn-sm btn-secondary" id="btn-twin-autospin" title="Toggle Model Auto-Rotation">
+                    <span>Auto-Rotate: ON</span>
+                  </button>
+                </div>
+                <div class="twin-footer-status">
+                  <span>Renderer: <strong>WebGL 2.0 (PBR 60 FPS)</strong></span>
+                  <span>Active Model: <strong id="twin-model-indicator">BenchTwin Lab (67.4 MB)</strong></span>
+                  <span>Isolation Rate: <strong class="val-green">3/3 Isolated (100%)</strong></span>
+                </div>
               </div>
             </div>
 
-            <div class="three-canvas-container" id="viewport-3d-box">
-              <canvas id="canvas-3d"></canvas>
-              
-              <!-- Floating Overlays on 3D Viewport (4 Probes) -->
-              <div class="twin-floating-overlay">
-                <div class="probe-hud-card probe-card-a">
-                  <div class="ph-label">S1: DISCONNECTED</div>
-                  <div class="ph-val" id="twin-val-a">DISC</div>
-                  <div class="ph-status status-red" id="twin-status-a">OPEN CIRCUIT</div>
+            <!-- Component Specifications Drawer -->
+            <div class="panel-card twin-specs-panel">
+              <div class="panel-header">
+                <h3 class="panel-heading">Demonstration Rig Architecture</h3>
+                <span class="badge-mini" id="twin-active-model-tag">BENCH RIG</span>
+              </div>
+
+              <div class="comp-specs-list">
+                <div class="spec-card-item">
+                  <div class="sci-head">
+                    <span class="sci-badge">RIG</span>
+                    <strong>BenchTwin Industrial Workstation</strong>
+                    <span class="sci-tag tag-green">SYNCHRONIZED</span>
+                  </div>
+                  <div class="sci-desc">Comprehensive test bench rig with dual power supply, waveform generator, digital oscilloscope and 4 sensor probe stations.</div>
                 </div>
 
-                <div class="probe-hud-card probe-card-b">
-                  <div class="ph-label">S2: CRASHED</div>
-                  <div class="ph-val" id="twin-val-b">24.50 &deg;C</div>
-                  <div class="ph-status status-orange" id="twin-status-b">FROZEN (STUCK)</div>
+                <div class="spec-card-item">
+                  <div class="sci-head">
+                    <span class="sci-badge">U1</span>
+                    <strong>Microcontroller Core</strong>
+                    <span class="sci-tag tag-green">ONLINE</span>
+                  </div>
+                  <div class="sci-desc">ESP32 32-bit Xtensa Dual-Core @ 240MHz. 12-bit SAR ADC (ADC1). Quad low-latency sampling firmware.</div>
                 </div>
 
-                <div class="probe-hud-card probe-card-c">
-                  <div class="ph-label">S3: WRONG READING</div>
-                  <div class="ph-val" id="twin-val-c">37.20 &deg;C</div>
-                  <div class="ph-status status-purple" id="twin-status-c">+12.4&deg;C OUTLIER</div>
+                <div class="spec-card-item">
+                  <div class="sci-head">
+                    <span class="sci-badge">S1</span>
+                    <strong>Sensor 1 (Disconnected)</strong>
+                    <span class="sci-tag tag-red">DISCONNECTED</span>
+                  </div>
+                  <div class="sci-desc">Wire severed simulation. ADC drops to ground rail (0V). Isolated by SENSEGuard boundary guard in &lt;15ms.</div>
                 </div>
 
-                <div class="probe-hud-card probe-card-d">
-                  <div class="ph-label">S4: SUCCESSFUL (TRUTH)</div>
-                  <div class="ph-val" id="twin-val-d">24.85 &deg;C</div>
-                  <div class="ph-status status-green" id="twin-status-d">CALIBRATED &bull; ACTIVE</div>
+                <div class="spec-card-item">
+                  <div class="sci-head">
+                    <span class="sci-badge">S2</span>
+                    <strong>Sensor 2 (Crashed)</strong>
+                    <span class="sci-tag tag-amber">FROZEN</span>
+                  </div>
+                  <div class="sci-desc">I2C / ADC buffer crash simulation. Zero variance detected on excitation (&sigma;&sup2; &lt; 0.005). Isolated in 780ms.</div>
                 </div>
 
-                <div class="three-help-tag">
-                  Rotate: Left Click + Drag &bull; Pan: Right Click + Drag &bull; Zoom: Scroll
+                <div class="spec-card-item">
+                  <div class="sci-head">
+                    <span class="sci-badge">S3</span>
+                    <strong>Sensor 3 (Wrong Reading)</strong>
+                    <span class="sci-tag tag-purple">BIASED OUTLIER</span>
+                  </div>
+                  <div class="sci-desc">Calibration bias fault (+12.5&deg;C discrepancy) rejected by median consensus filter in 110ms.</div>
+                </div>
+
+                <div class="spec-card-item">
+                  <div class="sci-head">
+                    <span class="sci-badge">S4</span>
+                    <strong>Sensor 4 (Successful)</strong>
+                    <span class="sci-tag tag-green">ELECTED TRUTH</span>
+                  </div>
+                  <div class="sci-desc">Fully verified, low-noise (39 dB SNR), healthy ground truth reference elected as authoritative system output.</div>
                 </div>
               </div>
 
-              <div class="twin-loading-cover" id="twin-loader">
-                <div class="clean-spinner"></div>
-                <span>Loading 3D Circuit Board Model (circuit-board.glb)...</span>
+              <div class="coupling-box">
+                <div class="cb-label">QUAD ARBITRATION EFFICIENCY</div>
+                <div class="cb-progress-bar">
+                  <div class="cb-bar-fill" style="width: 100%;"></div>
+                </div>
+                <div class="cb-meta">
+                  <span>Faults Isolated: 3 / 3 (100%)</span>
+                  <span>System Availability: 100.0%</span>
+                </div>
               </div>
             </div>
+
           </div>
 
-          <!-- Component Specifications Drawer -->
-          <div class="panel-card twin-specs-panel">
+          <!-- Extended Technical Deep-Dive & FMEA Architecture Section -->
+          <div class="panel-card twin-architecture-extended">
             <div class="panel-header">
-              <h3 class="panel-heading">Demonstration Rig Architecture</h3>
+              <div>
+                <span class="panel-kicker">ENGINEERING SUBSYSTEM SPECIFICATIONS &bull; IEEE 1451 COMPLIANCE</span>
+                <h3 class="panel-heading">Hardware Subsystem Breakdown &amp; Failure Mode and Effects Analysis (FMEA)</h3>
+                <span class="panel-subheading">Comprehensive architectural details of the cyber-physical laboratory bench, sensor conditioning circuits, and fault isolation logic</span>
+              </div>
+              <span class="badge-mini">4 SUBSYSTEMS</span>
             </div>
 
-            <div class="comp-specs-list">
-              <div class="spec-card-item">
-                <div class="sci-head">
-                  <span class="sci-badge">U1</span>
-                  <strong>Microcontroller Core</strong>
-                  <span class="sci-tag tag-green">ONLINE</span>
+            <div class="twin-fmea-grid">
+              
+              <!-- Subsystem 1: MCU ADC Core -->
+              <div class="fmea-card">
+                <div class="fc-head">
+                  <span class="fc-badge">SUBSYSTEM 01</span>
+                  <h4 class="fc-title">ESP32 SAR ADC &amp; DMA Ring Buffer</h4>
                 </div>
-                <div class="sci-desc">ESP32 32-bit Xtensa Dual-Core @ 240MHz. 12-bit SAR ADC (ADC1). Quad low-latency sampling firmware.</div>
+                <p class="fc-desc">
+                  Dual-core Xtensa 32-bit LX6 microcontroller clocked at 240MHz. Features 12-bit SAR ADC (ADC1) with 4096 quantization steps and 0.8mV/LSB resolution. Configured with 11dB hardware attenuation (0.0V &ndash; 3.3V dynamic span).
+                </p>
+                <div class="fc-specs">
+                  <div><span>Clock Speed:</span> <strong>240 MHz Dual-Core</strong></div>
+                  <div><span>Quantization:</span> <strong>12-bit (4096 LSB)</strong></div>
+                  <div><span>Sampling Span:</span> <strong>0.00V &ndash; 3.30V</strong></div>
+                  <div><span>Buffer Latency:</span> <strong>&lt; 5 ms DMA Ring</strong></div>
+                </div>
               </div>
 
-              <div class="spec-card-item">
-                <div class="sci-head">
-                  <span class="sci-badge">S1</span>
-                  <strong>Sensor 1 (Disconnected)</strong>
-                  <span class="sci-tag tag-red">DISCONNECTED</span>
+              <!-- Subsystem 2: Transducer Conditioning Array -->
+              <div class="fmea-card">
+                <div class="fc-head">
+                  <span class="fc-badge">SUBSYSTEM 02</span>
+                  <h4 class="fc-title">Quad Transducer Analog Front-End</h4>
                 </div>
-                <div class="sci-desc">Wire severed simulation. ADC drops to ground rail (0V). Isolated by SENSEGuard boundary guard.</div>
+                <p class="fc-desc">
+                  Star-ground PCB routing with dedicated 100nF low-ESR decoupling capacitors on each transducer channel. Integrates active pull-down rails for open-circuit detection and Kelvin 4-wire ground truth reference probe.
+                </p>
+                <div class="fc-specs">
+                  <div><span>Channel 1 (Pin 34):</span> <strong>NTC Thermistor / Pull-Down</strong></div>
+                  <div><span>Channel 2 (Pin 35):</span> <strong>I2C Digital Bus Probe</strong></div>
+                  <div><span>Channel 3 (Pin 32):</span> <strong>PT100 RTD Bridge</strong></div>
+                  <div><span>Channel 4 (Pin 33):</span> <strong>Precision Reference Cell</strong></div>
+                </div>
               </div>
 
-              <div class="spec-card-item">
-                <div class="sci-head">
-                  <span class="sci-badge">S2</span>
-                  <strong>Sensor 2 (Crashed)</strong>
-                  <span class="sci-tag tag-amber">FROZEN</span>
+              <!-- Subsystem 3: Laboratory Test Bench Rig -->
+              <div class="fmea-card">
+                <div class="fc-head">
+                  <span class="fc-badge">SUBSYSTEM 03</span>
+                  <h4 class="fc-title">BenchTwin Laboratory Instrumentation</h4>
                 </div>
-                <div class="sci-desc">I2C / ADC buffer crash simulation. Zero variance detected on excitation.</div>
+                <p class="fc-desc">
+                  Modelled in high-fidelity 3D (`benchtwin-project-2.glb`, 67.4MB). Incorporates 4-channel 100MHz digital storage oscilloscope, programmable triple-output linear DC power supply, arbitrary function generator, and thermal excitation heating coil.
+                </p>
+                <div class="fc-specs">
+                  <div><span>Oscilloscope:</span> <strong>4-CH 100MSa/s Digital Scope</strong></div>
+                  <div><span>Power Supply:</span> <strong>0-30V / 5A Regulated</strong></div>
+                  <div><span>Thermal Rig:</span> <strong>PWM Ceramic Heating Block</strong></div>
+                  <div><span>Mesh Complexity:</span> <strong>118 PBR Meshes (67.4MB)</strong></div>
+                </div>
               </div>
 
-              <div class="spec-card-item">
-                <div class="sci-head">
-                  <span class="sci-badge">S3</span>
-                  <strong>Sensor 3 (Wrong Reading)</strong>
-                  <span class="sci-tag tag-purple">BIASED OUTLIER</span>
+              <!-- Subsystem 4: Mathematical FDI Logic -->
+              <div class="fmea-card">
+                <div class="fc-head">
+                  <span class="fc-badge">SUBSYSTEM 04</span>
+                  <h4 class="fc-title">Mathematical Fault Detection &amp; Isolation (FDI)</h4>
                 </div>
-                <div class="sci-desc">Calibration bias fault (+12.5&deg;C discrepancy) rejected by median consensus filter.</div>
+                <p class="fc-desc">
+                  Deterministic arbitration pipeline combining rate-of-change boundary guards, rolling window variance estimators, and median voting envelopes to isolate transducer failures while allowing real physical process surges.
+                </p>
+                <div class="fc-specs">
+                  <div><span>Rate Guard:</span> <strong>|dT/dt| &le; 0.80 &deg;C/s</strong></div>
+                  <div><span>Variance Check:</span> <strong>&sigma;&sup2; &ge; 0.005 (Stuck Test)</strong></div>
+                  <div><span>Corridor Guard:</span> <strong>|T_i - T_median| &le; 1.20 &deg;C</strong></div>
+                  <div><span>Availability:</span> <strong>100.0% Continuous Output</strong></div>
+                </div>
               </div>
 
-              <div class="spec-card-item">
-                <div class="sci-head">
-                  <span class="sci-badge">S4</span>
-                  <strong>Sensor 4 (Successful)</strong>
-                  <span class="sci-tag tag-green">ELECTED TRUTH</span>
-                </div>
-                <div class="sci-desc">Fully verified, low-noise, healthy ground truth reference elected as system output.</div>
-              </div>
-            </div>
-
-            <div class="coupling-box">
-              <div class="cb-label">QUAD ARBITRATION EFFICIENCY</div>
-              <div class="cb-progress-bar">
-                <div class="cb-bar-fill" style="width: 100%;"></div>
-              </div>
-              <div class="cb-meta">
-                <span>Faults Isolated: 3 / 3</span>
-                <span>System Availability: 100.0%</span>
-              </div>
             </div>
           </div>
 
@@ -591,101 +793,473 @@
       </section>
 
       <!-- ===============================================================
-           PAGE: FAULT INJECTION SANDBOX
+           PAGE: FAULT INJECTION SANDBOX (THE BEST SIMULATION LAB EVER)
            =============================================================== -->
       <section class="page-container" id="page-bench">
         <div class="sandbox-layout">
-          <div class="panel-card">
+          
+          <!-- Master Control Header & Automated Benchmark Trigger -->
+          <div class="panel-card sandbox-master-panel">
             <div class="panel-header">
               <div>
-                <h3 class="panel-heading">Interactive Sensor-Fault Sandbox &bull; Selectable Scenarios</h3>
-                <span class="panel-subheading">Select a fault condition to observe SENSEGuard's classification and detection delay</span>
+                <span class="panel-kicker">INTERACTIVE SENSOR FAULT SIMULATION LAB &bull; VIRTUAL TEST BENCH</span>
+                <h3 class="panel-heading">Cyber-Physical Fault Injection Engine &amp; Signal Arbitration Studio</h3>
+                <span class="panel-subheading">Inject real-world industrial fault dynamics, control physical process parameters, and observe millisecond isolation delay</span>
               </div>
-              <button class="btn btn-secondary" id="btn-bench-reset-all">Reset to Nominal Baseline</button>
+              <div class="bench-top-actions">
+                <button class="btn btn-secondary" id="btn-bench-reset-all">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                  <span>Reset All to Nominal</span>
+                </button>
+                <button class="btn btn-primary" id="btn-run-stress-benchmark">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  <span>Run Automated Stress Benchmark</span>
+                </button>
+              </div>
             </div>
 
-            <div class="scenario-deck-grid">
+            <!-- Virtual Test Bench Hardware Control Rack -->
+            <div class="hardware-rack-grid">
+              
+              <!-- Ambient Base Temp Dial -->
+              <div class="rack-module">
+                <div class="rm-header">
+                  <span class="rm-title">AMBIENT BASE TEMP</span>
+                  <span class="rm-val val-blue" id="lbl-ambient">25.0 &deg;C</span>
+                </div>
+                <div class="rm-control-row">
+                  <input type="range" class="tactile-slider" id="range-ambient" min="10" max="85" value="25" step="0.5">
+                </div>
+                <span class="rm-sub">Simulated thermal chamber ambient</span>
+              </div>
+
+              <!-- Heater Element Power -->
+              <div class="rack-module">
+                <div class="rm-header">
+                  <span class="rm-title">HEATER ELEMENT POWER</span>
+                  <span class="rm-val val-orange" id="lbl-heater-power">0% (OFF)</span>
+                </div>
+                <div class="rm-control-row">
+                  <input type="range" class="tactile-slider slider-fire" id="range-heater" min="0" max="100" value="0" step="5">
+                  <div class="heater-glow-indicator" id="heater-glow"></div>
+                </div>
+                <span class="rm-sub">Thermal heating coil output power</span>
+              </div>
+
+              <!-- Cooling Fan PWM Speed -->
+              <div class="rack-module">
+                <div class="rm-header">
+                  <span class="rm-title">COOLING FAN PWM</span>
+                  <span class="rm-val val-cyan" id="lbl-fan-speed">OFF (0 RPM)</span>
+                </div>
+                <div class="rm-control-row fan-control-row">
+                  <div class="fan-btn-group">
+                    <button class="btn-fan active" data-pwm="0">OFF</button>
+                    <button class="btn-fan" data-pwm="30">LOW</button>
+                    <button class="btn-fan" data-pwm="65">MED</button>
+                    <button class="btn-fan" data-pwm="100">MAX</button>
+                  </div>
+                  <div class="fan-icon-spin" id="fan-spin-indicator">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a4 4 0 0 1 4 4c0 3-4 6-4 6s-4-3-4-6a4 4 0 0 1 4-4z"/><path d="M12 22a4 4 0 0 1-4-4c0-3 4-6 4-6s4 3 4 6a4 4 0 0 1-4 4z"/><path d="M22 12a4 4 0 0 1-4 4c-3 0-6-4-6-4s3-4 6-4a4 4 0 0 1 4 4z"/><path d="M2 12a4 4 0 0 1 4-4c3 0 6 4 6 4s-3 4-6 4a4 4 0 0 1-4-4z"/></svg>
+                  </div>
+                </div>
+                <span class="rm-sub">Forced convection heatsink cooling</span>
+              </div>
+
+              <!-- Process Thermal Noise -->
+              <div class="rack-module">
+                <div class="rm-header">
+                  <span class="rm-title">THERMAL NOISE (JITTER)</span>
+                  <span class="rm-val val-purple" id="lbl-noise-amp">&plusmn;0.08 &deg;C</span>
+                </div>
+                <div class="rm-control-row">
+                  <input type="range" class="tactile-slider" id="range-noise" min="0.01" max="1.50" value="0.08" step="0.01">
+                </div>
+                <span class="rm-sub">Gaussian thermal white noise floor</span>
+              </div>
+
+              <!-- Tolerance Plausibility Corridor -->
+              <div class="rack-module">
+                <div class="rm-header">
+                  <span class="rm-title">CORRIDOR TOLERANCE</span>
+                  <span class="rm-val val-blue" id="lbl-corridor">&plusmn;1.20 &deg;C</span>
+                </div>
+                <div class="rm-control-row">
+                  <input type="range" class="tactile-slider" id="range-corridor" min="0.4" max="4.0" value="1.2" step="0.1">
+                </div>
+                <span class="rm-sub">Dynamic fault trip boundary corridor</span>
+              </div>
+
+              <!-- Consensus Algorithm Selector -->
+              <div class="rack-module">
+                <div class="rm-header">
+                  <span class="rm-title">ARBITRATION ALGORITHM</span>
+                  <span class="badge-mini tag-green" id="algo-tag">OPTIMAL</span>
+                </div>
+                <div class="rm-control-row">
+                  <select class="clean-select" id="select-arbitration-algo">
+                    <option value="median" selected>SENSEGuard Median Cross-Voting</option>
+                    <option value="kalman">Kalman Filter Dynamic State Fusion</option>
+                    <option value="wls">Weighted Least Squares (Inverse Variance)</option>
+                    <option value="tmr">Triple Modular Redundancy (TMR Gate)</option>
+                  </select>
+                </div>
+                <span class="rm-sub">Transducer fusion &amp; fault isolation logic</span>
+              </div>
+
+            </div>
+
+            <!-- Live Animated Signal Arbitration Flow Pipeline -->
+            <div class="pipeline-card">
+              <div class="pipeline-header">
+                <span class="pl-heading">LIVE SIGNAL ARBITRATION &amp; FAULT ISOLATION FLOW PIPELINE</span>
+                <span class="pl-status-badge tag-green" id="pipeline-status">100% PROCESS CONTINUITY VERIFIED</span>
+              </div>
+
+              <div class="pipeline-diagram-track">
+                
+                <!-- Stage 1: Transducers -->
+                <div class="pipeline-node node-stage-1" id="pipe-node-sensors">
+                  <div class="pn-tag">STAGE 1</div>
+                  <div class="pn-title">4x Transducers</div>
+                  <div class="pn-indicators">
+                    <span class="pi-dot dot-red" id="pdot-s1" title="S1: Disconnected">S1</span>
+                    <span class="pi-dot dot-orange" id="pdot-s2" title="S2: Crashed">S2</span>
+                    <span class="pi-dot dot-purple" id="pdot-s3" title="S3: Outlier">S3</span>
+                    <span class="pi-dot dot-green" id="pdot-s4" title="S4: Ground Truth">S4</span>
+                  </div>
+                  <span class="pn-meta">ADC Sampling @ 10 Hz</span>
+                </div>
+
+                <div class="pipeline-arrow"><div class="arrow-pulse"></div></div>
+
+                <!-- Stage 2: Slew Rate & Noise Filter -->
+                <div class="pipeline-node node-stage-2" id="pipe-node-filter">
+                  <div class="pn-tag">STAGE 2</div>
+                  <div class="pn-title">Rate Guard &amp; EMA</div>
+                  <div class="pn-val" id="pipe-val-rate">dT/dt: +0.02&deg;C/s</div>
+                  <span class="pn-meta">&alpha; = 0.25 Low-Pass Filter</span>
+                </div>
+
+                <div class="pipeline-arrow"><div class="arrow-pulse"></div></div>
+
+                <!-- Stage 3: Plausibility Corridor -->
+                <div class="pipeline-node node-stage-3" id="pipe-node-corridor">
+                  <div class="pn-tag">STAGE 3</div>
+                  <div class="pn-title">Plausibility Corridor</div>
+                  <div class="pn-val" id="pipe-val-corridor">&plusmn;1.20&deg;C Boundary</div>
+                  <span class="pn-meta">Zero-Variance &amp; Rail Checks</span>
+                </div>
+
+                <div class="pipeline-arrow"><div class="arrow-pulse"></div></div>
+
+                <!-- Stage 4: Consensus Engine -->
+                <div class="pipeline-node node-stage-4" id="pipe-node-consensus">
+                  <div class="pn-tag">STAGE 4</div>
+                  <div class="pn-title">Consensus Engine</div>
+                  <div class="pn-val val-green" id="pipe-val-elected">S4 Elected (99% Trust)</div>
+                  <span class="pn-meta">3 Faults Isolated</span>
+                </div>
+
+                <div class="pipeline-arrow"><div class="arrow-pulse"></div></div>
+
+                <!-- Stage 5: Protected Output -->
+                <div class="pipeline-node node-stage-5" id="pipe-node-output">
+                  <div class="pn-tag">STAGE 5</div>
+                  <div class="pn-title">Protected Output</div>
+                  <div class="pn-val val-blue" id="pipe-val-truth">24.85 &deg;C</div>
+                  <span class="pn-meta">100% Process Uptime</span>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Latency Stopwatch & Benchmark KPI Banner -->
+            <div class="latency-benchmark-strip">
+              <div class="lb-item">
+                <span class="lb-label">S1 OPEN-CIRCUIT TRIP:</span>
+                <span class="lb-num val-red" id="stopwatch-s1">&lt; 14 ms</span>
+              </div>
+              <div class="lb-item">
+                <span class="lb-label">S2 CRASH ISOLATION:</span>
+                <span class="lb-num val-orange" id="stopwatch-s2">&lt; 780 ms</span>
+              </div>
+              <div class="lb-item">
+                <span class="lb-label">S3 OUTLIER REJECTION:</span>
+                <span class="lb-num val-purple" id="stopwatch-s3">&lt; 110 ms</span>
+              </div>
+              <div class="lb-item">
+                <span class="lb-label">S4 HEALTHY ELECTED:</span>
+                <span class="lb-num val-green" id="stopwatch-s4">CONTINUOUS</span>
+              </div>
+              <div class="lb-item">
+                <span class="lb-label">FALSE ALARM RATE:</span>
+                <span class="lb-num val-green" id="stopwatch-false-alarms">0.0% (Zero Trip)</span>
+              </div>
+              <div class="lb-item">
+                <span class="lb-label">PROCESS CONTINUITY:</span>
+                <span class="lb-num val-green" id="stopwatch-uptime">100.0% UPTIME</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Dual-Mode High-Performance Phosphor Oscilloscope & FFT Spectrum Analyzer -->
+          <div class="panel-card oscilloscope-master-panel">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-heading">Real-Time Phosphor Oscilloscope &amp; FFT Spectrum Analyzer</h3>
+                <span class="panel-subheading">Hardware-grade multi-trace oscilloscope with phosphor persistence decay trails &amp; spectral frequency analysis</span>
+              </div>
+
+              <!-- Scope Controls -->
+              <div class="scope-controls-bar">
+                <!-- Channel Visibility Toggles -->
+                <div class="scope-channel-toggles">
+                  <button class="btn-channel-toggle active-s1" data-ch="s1" id="scope-ch-s1">CH1: S1 (Disc)</button>
+                  <button class="btn-channel-toggle active-s2" data-ch="s2" id="scope-ch-s2">CH2: S2 (Crashed)</button>
+                  <button class="btn-channel-toggle active-s3" data-ch="s3" id="scope-ch-s3">CH3: S3 (Wrong)</button>
+                  <button class="btn-channel-toggle active-s4" data-ch="s4" id="scope-ch-s4">CH4: S4 (Truth)</button>
+                  <button class="btn-channel-toggle active-consensus" data-ch="consensus" id="scope-ch-consensus">OUT: Elected</button>
+                </div>
+
+                <!-- Timebase & Trigger -->
+                <div class="scope-param-group">
+                  <span class="lbl-param">Timebase:</span>
+                  <div class="btn-group-segmented">
+                    <button class="btn-seg active" data-timebase="30">30s</button>
+                    <button class="btn-seg" data-timebase="60">60s</button>
+                    <button class="btn-seg" data-timebase="120">120s</button>
+                  </div>
+                </div>
+
+                <div class="scope-param-group">
+                  <span class="lbl-param">Trigger:</span>
+                  <div class="btn-group-segmented">
+                    <button class="btn-seg active" data-trig="auto" id="trig-auto">AUTO</button>
+                    <button class="btn-seg" data-trig="norm" id="trig-norm">NORM</button>
+                    <button class="btn-seg" data-trig="single" id="trig-single">SINGLE</button>
+                  </div>
+                </div>
+
+                <div class="scope-param-group">
+                  <button class="btn btn-sm btn-secondary" id="btn-toggle-cursors" title="Toggle Draggable Measurement Cursors">Cursors: ON</button>
+                  <button class="btn btn-sm btn-secondary" id="btn-toggle-fft" title="Toggle Real-Time FFT Frequency Spectrum">FFT: ON</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Oscilloscope Display Grids (Main Waveform Scope + Side FFT Spectrum) -->
+            <div class="scope-dual-display-grid">
+              
+              <!-- Main Waveform CRT Screen -->
+              <div class="scope-crt-container">
+                <canvas id="bench-oscilloscope-canvas"></canvas>
+                
+                <!-- Crosshairs HUD readout -->
+                <div class="scope-cursor-readout" id="scope-cursor-hud">
+                  <span id="scope-cursor-t1">Cursor A: --</span>
+                  <span id="scope-cursor-t2">Cursor B: --</span>
+                  <span class="val-blue" id="scope-cursor-delta">&Delta;T: -- &bull; &Delta;t: --</span>
+                </div>
+              </div>
+
+              <!-- Real-Time FFT Frequency Spectrum Analyzer -->
+              <div class="scope-fft-container" id="fft-container-box">
+                <div class="fft-header">
+                  <span>FFT FREQUENCY SPECTRUM (0 &ndash; 25 Hz)</span>
+                  <span class="badge-mini" id="fft-snr-badge">SNR: 39 dB</span>
+                </div>
+                <canvas id="bench-fft-canvas"></canvas>
+                <div class="fft-footer-notes">
+                  <span>DC Process Base: ~0.05 Hz</span>
+                  <span>50Hz Mains Induction Guard</span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Scope Footer Telemetry Strip -->
+            <div class="scope-footer-telemetry">
+              <div><span class="lbl">ADC Sampling:</span> <strong id="scope-hz-indicator">10.0 Hz</strong></div>
+              <div><span class="lbl">Vertical Scale:</span> <strong>2.00 &deg;C / div</strong></div>
+              <div><span class="lbl">Persistence:</span> <strong id="scope-persistence-val">Phosphor Trail (Active)</strong></div>
+              <div><span class="lbl">Points Buffered:</span> <strong id="scope-points-val">0</strong></div>
+              <div><span class="lbl">Trigger State:</span> <strong class="val-green" id="scope-trig-status">TRIGGERED &bull; SYNC</strong></div>
+            </div>
+          </div>
+
+          <!-- 12-Scenario Industrial Real-World Fault Injection Matrix -->
+          <div class="panel-card scenario-matrix-panel">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-heading">12-Scenario Industrial Real-World Fault Matrix</h3>
+                <span class="panel-subheading">Select any scenario to inject industrial transducer failures, noise anomalies, and thermal events into the live pipeline</span>
+              </div>
+              <span class="badge-mini">12 INDUSTRIAL PRESETS</span>
+            </div>
+
+            <div class="scenario-deck-grid-12">
+              
+              <!-- Scenario 01: Nominal -->
               <div class="scen-box active" data-scenario="nominal" id="scen-card-nominal">
                 <div class="sb-top">
                   <span class="sb-num">SCENARIO 01</span>
                   <span class="sb-pill pill-green">BASELINE</span>
                 </div>
                 <h4 class="sb-title">Nominal Baseline Operation</h4>
-                <p class="sb-text">All sensors track synchronously on common thermal mass. Minor ambient variance (&lt;0.05&deg;C). Trust Score stays at 98%+.</p>
+                <p class="sb-text">All 4 sensors track in thermal equilibrium. Negligible ambient variance (&lt;0.05&deg;C). Trust Score stays at 98%+.</p>
                 <button class="btn btn-sm btn-scenario-act">Activate Nominal</button>
               </div>
 
+              <!-- Scenario 02: Thermal Shock -->
               <div class="scen-box" data-scenario="process_surge" id="scen-card-process">
                 <div class="sb-top">
                   <span class="sb-num">SCENARIO 02</span>
                   <span class="sb-pill pill-amber">REAL PROCESS EVENT</span>
                 </div>
-                <h4 class="sb-title">Heater Pulse / Thermal Shock</h4>
-                <p class="sb-text">Real process temperature jumps +12&deg;C rapidly. BOTH sensors surge together (dT/dt &gt; 0.8&deg;C/s). SENSEGuard flags PROCESS ALERT, NOT sensor fault!</p>
-                <button class="btn btn-sm btn-scenario-act">Inject Process Surge</button>
+                <h4 class="sb-title">Rapid Thermal Shock / Surge</h4>
+                <p class="sb-text">Real process jumps +15&deg;C rapidly (dT/dt &gt; 1.0&deg;C/s). Verified process event, NOT sensor failure. Zero false shutdowns.</p>
+                <button class="btn btn-sm btn-scenario-act">Inject Thermal Shock</button>
               </div>
 
-              <div class="scen-box" data-scenario="sensor_drift" id="scen-card-drift">
-                <div class="sb-top">
-                  <span class="sb-num">SCENARIO 03</span>
-                  <span class="sb-pill pill-red">TRANSDUCER FAULT</span>
-                </div>
-                <h4 class="sb-title">Sensor B Calibration Drift</h4>
-                <p class="sb-text">Sensor B develops dynamic bias creep (+0.3&deg;C/s) while Sensor A remains steady. Triggers Transducer Drift alarm and isolates Channel B.</p>
-                <button class="btn btn-sm btn-scenario-act">Inject Sensor Drift</button>
-              </div>
-
+              <!-- Scenario 03: Open-Circuit -->
               <div class="scen-box" data-scenario="open_circuit" id="scen-card-open">
                 <div class="sb-top">
-                  <span class="sb-num">SCENARIO 04</span>
+                  <span class="sb-num">SCENARIO 03</span>
                   <span class="sb-pill pill-red">DISCONNECTION</span>
                 </div>
-                <h4 class="sb-title">Open-Circuit / Wire Disconnect</h4>
-                <p class="sb-text">Sensor A wire pulled. ADC drops to ground rail (0V / -999&deg;C). System instantly isolates Sensor A without system crashing.</p>
-                <button class="btn btn-sm btn-scenario-act">Simulate Wire Pull</button>
+                <h4 class="sb-title">Open-Circuit / Wire Severance</h4>
+                <p class="sb-text">S1 wire cut. ADC drops immediately to 0V ground rail. SENSEGuard isolates channel in &lt;15 ms with zero process interruption.</p>
+                <button class="btn btn-sm btn-scenario-act">Simulate Wire Sever</button>
               </div>
 
+              <!-- Scenario 04: Stuck ADC -->
               <div class="scen-box" data-scenario="sensor_stuck" id="scen-card-stuck">
                 <div class="sb-top">
-                  <span class="sb-num">SCENARIO 05</span>
+                  <span class="sb-num">SCENARIO 04</span>
                   <span class="sb-pill pill-red">STUCK VALUE</span>
                 </div>
-                <h4 class="sb-title">Sensor A Frozen / Stuck-at</h4>
-                <p class="sb-text">Sensor A is locked at 25.0&deg;C while real process warms to 34&deg;C. Zero variance detected on Sensor A under excitation flags stuck-at fault.</p>
+                <h4 class="sb-title">Firmware Bus Crash / Stuck ADC</h4>
+                <p class="sb-text">S2 registers frozen at 24.5&deg;C during excitation. Zero variance (&sigma;&sup2; &lt; 0.005) caught and isolated in 780 ms.</p>
                 <button class="btn btn-sm btn-scenario-act">Simulate Stuck Sensor</button>
               </div>
 
+              <!-- Scenario 05: Calibration Drift -->
+              <div class="scen-box" data-scenario="sensor_drift" id="scen-card-drift">
+                <div class="sb-top">
+                  <span class="sb-num">SCENARIO 05</span>
+                  <span class="sb-pill pill-red">TRANSDUCER FAULT</span>
+                </div>
+                <h4 class="sb-title">Calibration Drift / Aging Creep</h4>
+                <p class="sb-text">S3 develops cumulative calibration drift (+0.25&deg;C/s). As soon as boundary corridor is breached, S3 is rejected.</p>
+                <button class="btn btn-sm btn-scenario-act">Inject Drift Creep</button>
+              </div>
+
+              <!-- Scenario 06: EMI Noise Spike -->
               <div class="scen-box" data-scenario="noise_burst" id="scen-card-noise">
                 <div class="sb-top">
                   <span class="sb-num">SCENARIO 06</span>
-                  <span class="sb-pill pill-purple">NOISE SPIKE</span>
+                  <span class="sb-pill pill-purple">HIGH EMI NOISE</span>
                 </div>
-                <h4 class="sb-title">High EMI / Loose Terminal</h4>
-                <p class="sb-text">Severe high-frequency jitter (&plusmn;3.5&deg;C) injected into measurement. System classifies state as UNCERTAIN until noise floor stabilizes.</p>
-                <button class="btn btn-sm btn-scenario-act">Inject Noise Burst</button>
-              </div>
-            </div>
-
-            <div class="sliders-deck-bar">
-              <div class="slider-item">
-                <div class="slider-header-text">
-                  <label for="range-ambient">Base Ambient Process Temperature:</label>
-                  <span class="slider-val-readout" id="lbl-ambient">25.0 &deg;C</span>
-                </div>
-                <input type="range" id="range-ambient" min="10" max="85" value="25" step="0.5">
+                <h4 class="sb-title">Industrial EMI / Loose Terminal</h4>
+                <p class="sb-text">Severe high-frequency electromagnetic interference (&plusmn;4.0&deg;C). FFT highlights noise spike; system engages confidence dampening.</p>
+                <button class="btn btn-sm btn-scenario-act">Inject EMI Burst</button>
               </div>
 
-              <div class="slider-item">
-                <div class="slider-header-text">
-                  <label for="range-corridor">Dynamic Delta Threshold (|&Delta;T| limit):</label>
-                  <span class="slider-val-readout" id="lbl-corridor">&plusmn;1.20 &deg;C</span>
+              <!-- Scenario 07: Intermittent Chatter -->
+              <div class="scen-box" data-scenario="contact_bounce" id="scen-card-bounce">
+                <div class="sb-top">
+                  <span class="sb-num">SCENARIO 07</span>
+                  <span class="sb-pill pill-red">CONTACT CHATTER</span>
                 </div>
-                <input type="range" id="range-corridor" min="0.4" max="4.0" value="1.2" step="0.1">
+                <h4 class="sb-title">Intermittent Terminal Bounce</h4>
+                <p class="sb-text">Vibration-induced contact bounce causing 5 Hz intermittent dropouts. Instantly flagged as unstable connection.</p>
+                <button class="btn btn-sm btn-scenario-act">Inject Contact Chatter</button>
               </div>
+
+              <!-- Scenario 08: Power Rail Brownout -->
+              <div class="scen-box" data-scenario="power_brownout" id="scen-card-brownout">
+                <div class="sb-top">
+                  <span class="sb-num">SCENARIO 08</span>
+                  <span class="sb-pill pill-amber">POWER FAULT</span>
+                </div>
+                <h4 class="sb-title">Power Rail Brownout (2.7V Vref)</h4>
+                <p class="sb-text">Microcontroller 3V3 rail sags to 2.7V, causing shared ADC reference shift. SENSEGuard identifies correlated power fluctuation.</p>
+                <button class="btn btn-sm btn-scenario-act">Simulate Rail Brownout</button>
+              </div>
+
+              <!-- Scenario 09: Spatial Thermal Gradient -->
+              <div class="scen-box" data-scenario="thermal_gradient" id="scen-card-gradient">
+                <div class="sb-top">
+                  <span class="sb-num">SCENARIO 09</span>
+                  <span class="sb-pill pill-green">LEGITIMATE GRADIENT</span>
+                </div>
+                <h4 class="sb-title">Asymmetric Thermal Gradient</h4>
+                <p class="sb-text">Non-uniform heating introduces a legitimate +3.2&deg;C gradient across heatsink. SENSEGuard arbitrates without false trip.</p>
+                <button class="btn btn-sm btn-scenario-act">Simulate Gradient</button>
+              </div>
+
+              <!-- Scenario 10: Triple Fault Solitary Survivor -->
+              <div class="scen-box" data-scenario="triple_fault" id="scen-card-triple">
+                <div class="sb-top">
+                  <span class="sb-num">SCENARIO 10</span>
+                  <span class="sb-pill pill-red">MULTI-TRANSDUCER FAULT</span>
+                </div>
+                <h4 class="sb-title">Triple Fault: Solitary Survivor</h4>
+                <p class="sb-text">S1 severed, S2 frozen, S3 biased simultaneously. SENSEGuard eliminates all 3 and elects S4 as sole authoritative truth.</p>
+                <button class="btn btn-sm btn-scenario-act">Trigger Triple Fault</button>
+              </div>
+
+              <!-- Scenario 11: Cascading Chain -->
+              <div class="scen-box" data-scenario="cascading_chain" id="scen-card-cascade">
+                <div class="sb-top">
+                  <span class="sb-num">SCENARIO 11</span>
+                  <span class="sb-pill pill-purple">CHAIN REACTION</span>
+                </div>
+                <h4 class="sb-title">Cascading Failure Chain (30s)</h4>
+                <p class="sb-text">Automated 30-second sequence: Drift &rarr; Noise Burst &rarr; Disconnect &rarr; Recovery. Tests dynamic autonomous arbitration reallocation.</p>
+                <button class="btn btn-sm btn-scenario-act">Start Cascading Chain</button>
+              </div>
+
+              <!-- Scenario 12: Chaos Engineering -->
+              <div class="scen-box" data-scenario="chaos_mode" id="scen-card-chaos">
+                <div class="sb-top">
+                  <span class="sb-num">SCENARIO 12</span>
+                  <span class="sb-pill pill-amber">CHAOS MONKEY</span>
+                </div>
+                <h4 class="sb-title">Stochastic Chaos Engineering</h4>
+                <p class="sb-text">Continuous randomized stochastic fault injection simulating harsh industrial manufacturing conditions.</p>
+                <button class="btn btn-sm btn-scenario-act">Engage Chaos Mode</button>
+              </div>
+
             </div>
           </div>
+
         </div>
       </section>
+
+      <!-- Persistent Floating 3D Picture-in-Picture (PiP) Viewport Dock -->
+      <div class="pip-twin-dock" id="pip-twin-dock">
+        <div class="pip-dock-header">
+          <div class="pip-title">
+            <span class="stream-dot"></span>
+            <span>3D Mini Twin View</span>
+          </div>
+          <div class="pip-controls">
+            <button class="pip-btn" id="pip-btn-expand" title="Expand View">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+            </button>
+            <button class="pip-btn" id="pip-btn-close" title="Hide Mini Twin">&times;</button>
+          </div>
+        </div>
+        <div class="pip-canvas-holder">
+          <canvas id="pip-3d-canvas"></canvas>
+          <div class="pip-status-strip">
+            <span id="pip-status-txt">S4 ELECTED &bull; 100% UPTIME</span>
+          </div>
+        </div>
+      </div>
 
       <!-- ===============================================================
            PAGE: ALERT HISTORY & TEST SUMMARY
@@ -876,6 +1450,6 @@ void loop() {
 
   </div>
 
-  <script type="module" src="app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

@@ -20,20 +20,29 @@ When an industrial or laboratory sensor reports an abnormal reading, does the pr
    - **Sensor 3 (Wrong Reading / Outlier)**: $+12.4^\circ\text{C}$ calibration divergence rejected by median cross-consensus bounds.
    - **Sensor 4 (Successful / Ground Truth)**: Healthy calibrated reference elected as authoritative process signal, maintaining **100% uninterrupted uptime**.
 
-2. **3D Hardware Digital Twin (`circuit-board.glb`)**:
-   - Interactive Three.js WebGL viewport rendering the physical microcontroller circuit board.
+2. **Dual-Model 3D Hardware Digital Twin (`benchtwin-project-2.glb` & `circuit-board.glb`)**:
+   - Interactive Three.js WebGL viewport with dual model selector: high-fidelity 64MB **BenchTwin Laboratory Workstation** and physical **Circuit Micro-Board**.
+   - Interactive hardware hotspots: Full Lab Overview, Rig Oscilloscope, DC Power Supply, Bench Multimeter, ESP32 Core, Quad Probes Array, and Thermal Heatsink.
    - Dynamic LED node lighting showing real-time physical probe statuses (Red for S1, Orange for S2, Purple for S3, Green for S4).
-   - Camera vantage presets (Isometric, Top View, Sensor Probes, Reset).
+   - Camera vantage presets (Isometric, Frontal, Probe Array, Top Schem, Cinematic Tour, Reset) and visual render modes (Heatmap, Wireframe, Tactical Grid).
+   - Tools: Fullscreen 3D canvas and high-res PNG snapshot capture.
 
-3. **Deterministic Finite State Machine (FSM)**:
+3. **Laboratory Simulation Test Bench & FFT Oscilloscope**:
+   - Tactile hardware rack: ambient temperature bias, PID heater wattage control, PWM cooling fan, thermal noise generator, and consensus algorithm switcher (Weighted Cross-Consensus, Trimmed Mean, Kalman Filter, Majority Rule).
+   - Real-time animated 5-stage signal arbitration flow pipeline.
+   - Dual-channel phosphor persistence digital storage oscilloscope with crosshair measurements and Discrete Fourier Transform (FFT) real-time spectral analyzer.
+   - Expanded 12-scenario industrial fault injection matrix.
+
+4. **Deterministic Finite State Machine (FSM)**:
    - 4-state real-time classifier: `OPTIMAL (NORMAL)`, `PROCESS SURGE (REAL)`, `TRANSDUCER FAULT`, and `DEGRADED / UNCERTAIN`.
    - Real-time numerical rate of change ($\mathrm{d}T/\mathrm{d}t$), exponential low-pass filter ($\alpha = 0.25$), and continuous SNR tracking.
 
-4. **Hardware Plug-and-Play (WebSerial API)**:
-   - Direct USB Serial connectivity from the browser to an ESP32 microcontroller at 115200 baud without installing third-party drivers or servers.
-   - Includes production-ready Arduino/ESP32 C++ firmware sketch.
+5. **Hardware Plug-and-Play & Audio Synthesizer**:
+   - Direct USB Serial connectivity from the browser to an ESP32 microcontroller at 115200 baud via WebSerial API.
+   - Web Audio API acoustic feedback engine simulating mechanical relay clicks, audible fault alarms, and acoustic hums.
+   - Clean Laboratory White Theme (`theme-light`) with one-click dark/light toggle and temperature unit switcher (°C / °F / K).
 
-5. **Forensics & Audit Export**:
+6. **Forensics & Audit Export**:
    - Real-time event log tracking timestamped anomaly sequences.
    - One-click CSV and JSON data export for academic documentation and research papers.
 
@@ -49,6 +58,8 @@ cd c:\projects\sabari
 
 # Start a local HTTP server
 python -m http.server 8080
+# Or using Node.js:
+# npm start
 ```
 
 Open your browser at **`http://localhost:8080`**.
@@ -59,9 +70,13 @@ Open your browser at **`http://localhost:8080`**.
 
 ```
 ├── index.html                           # Single-Page Multi-View Dashboard Application
-├── style.css                            # Clean Professional Laboratory Light Theme
-├── app.js                               # Quad-Sensor Simulation Engine, Three.js 3D Viewport, Canvas Renderer
-├── circuit-board.glb                    # 3D Circuit Board Digital Twin Model
+├── style.css                            # Clean Professional Laboratory Light Theme & Dark Mode
+├── app.js                               # Quad-Sensor Simulation Engine, Three.js 3D Viewport, FFT Analyzer, Audio
+├── benchtwin-project-2.glb              # High-Fidelity 3D Laboratory Test Bench Workstation Model
+├── circuit-board.glb                    # 3D Micro-Board Digital Twin Model
+├── server.js                            # Static file streaming server with MIME types
+├── package.json                         # Node server dependency and start script
+├── render.yaml                          # Cloud deployment configuration
 ├── SENSEGuard_Ideathon_10_Pitch_Deck.pptx # Original Ideathon 10.0 Concept Pitch Deck
 └── README.md                            # Comprehensive System Documentation
 ```
