@@ -2802,4 +2802,335 @@ body.audio-off .icon-sound-off { display: block; }
   .twin-fmea-grid { grid-template-columns: 1fr; }
 }
 
+/* =========================================================================
+   SUPERCHARGED LIVE TELEMETRY STYLES
+   ========================================================================= */
+.chart-action-btns {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.telemetry-tools-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.telemetry-trimmer-card, .telemetry-session-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.trimmer-sliders-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.trimmer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
+.trimmer-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.session-rec-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.rec-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  margin-right: 6px;
+}
+
+.btn-danger {
+  background: #DC2626;
+  color: #FFFFFF;
+  border: 1px solid #B91C1C;
+}
+
+.btn-danger:hover {
+  background: #B91C1C;
+}
+
+.session-metrics-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  font-size: 11px;
+}
+
+.session-metrics-strip div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.canvas-distribution-holder {
+  width: 100%;
+  height: 80px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  position: relative;
+}
+
+#canvas-telemetry-dist {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* =========================================================================
+   SUPERCHARGED 3D DIGITAL TWIN STYLES
+   ========================================================================= */
+.twin-advanced-controls-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border-light);
+  flex-wrap: wrap;
+}
+
+.twin-ctrl-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.twin-ctrl-item .ctrl-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.slider-sm {
+  width: 90px;
+}
+
+/* 3D Spatial HTML Pins Layer */
+.twin-spatial-pins-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 25;
+}
+
+.spatial-pin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: opacity 0.15s ease;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.spatial-pin.hidden {
+  display: none !important;
+}
+
+.sp-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #38BDF8;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.9);
+  animation: pulseDot 2s infinite ease-in-out;
+}
+
+.pin-s1 .sp-dot { background: #EF4444; box-shadow: 0 0 10px #EF4444; }
+.pin-s2 .sp-dot { background: #F97316; box-shadow: 0 0 10px #F97316; }
+.pin-s3 .sp-dot { background: #A855F7; box-shadow: 0 0 10px #A855F7; }
+.pin-s4 .sp-dot { background: #10B981; box-shadow: 0 0 10px #10B981; }
+
+.sp-card {
+  margin-bottom: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  box-shadow: var(--shadow-md);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.sp-title {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.sp-val {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+/* 3D Measurement Caliper Banner */
+.twin-measure-banner {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card);
+  border: 1px solid var(--color-consensus);
+  border-radius: var(--radius-md);
+  padding: 8px 16px;
+  display: none;
+  align-items: center;
+  gap: 14px;
+  box-shadow: var(--shadow-lg);
+  z-index: 30;
+}
+
+.twin-measure-banner.active {
+  display: flex;
+}
+
+.tmb-icon svg {
+  width: 20px;
+  height: 20px;
+  color: var(--color-consensus);
+}
+
+.tmb-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.tmb-title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-consensus);
+}
+
+.tmb-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.tmb-result {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-dark);
+  background: var(--bg-subtle);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+}
+
+/* Subsystem Search and Actions */
+.subsystem-search-box {
+  margin-bottom: 10px;
+}
+
+.sci-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-sub-act {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-sub-act:hover {
+  border-color: var(--color-consensus);
+  background: var(--bg-subtle);
+}
+
+.btn-sub-act.active {
+  background: var(--color-consensus);
+  color: #FFFFFF;
+  border-color: var(--color-consensus);
+}
+
+/* CAD Inspector Box */
+.cad-inspector-box {
+  margin-top: 14px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+.cib-title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.cib-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.cib-grid span {
+  color: var(--text-muted);
+}
+
+.cib-grid strong {
+  font-family: var(--font-mono);
+  color: var(--text-dark);
+}
+
+@media (max-width: 1024px) {
+  .telemetry-tools-grid { grid-template-columns: 1fr; }
+}
+
+
 

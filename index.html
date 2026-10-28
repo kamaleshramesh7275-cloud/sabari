@@ -378,7 +378,7 @@
             </div>
           </div>
 
-          <!-- Bottom Row: Waveform Chart (Left) + Plausibility Checks (Right) -->
+          <!-- Bottom Row: Waveform Chart (Left) + Plausibility Checks & Calibration (Right) -->
           <div class="telemetry-bottom-grid">
             <div class="panel-card chart-panel">
               <div class="panel-header">
@@ -398,6 +398,18 @@
                     <button class="btn-time active" data-sec="30">30s</button>
                     <button class="btn-time" data-sec="60">60s</button>
                     <button class="btn-time" data-sec="120">120s</button>
+                    <button class="btn-time" data-sec="300">300s</button>
+                  </div>
+                  <div class="chart-action-btns">
+                    <button class="btn btn-sm btn-secondary" id="btn-telemetry-pause" title="Pause or Freeze Live Waveform Stream">
+                      <span id="txt-telemetry-pause">Freeze Stream</span>
+                    </button>
+                    <button class="btn btn-sm btn-secondary" id="btn-telemetry-clear" title="Clear Waveform Buffer">
+                      <span>Clear Buffer</span>
+                    </button>
+                    <button class="btn btn-sm btn-secondary" id="btn-telemetry-snapshot" title="Save Chart as PNG Image">
+                      <span>Snapshot PNG</span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -412,10 +424,13 @@
               <div class="chart-footer-metrics">
                 <div><span class="lbl">ADC Sampling:</span> <strong id="hz-indicator">10.0 Hz</strong></div>
                 <div><span class="lbl">Tolerance Boundary:</span> <strong id="corridor-indicator">&plusmn;1.20 &deg;C</strong></div>
-                <div><span class="lbl">Samples Recorded:</span> <strong id="datapoints-counter">0</strong></div>
+                <div><span class="lbl">Buffer Depth:</span> <strong id="datapoints-counter">0 samples</strong></div>
+                <div><span class="lbl">Live SNR:</span> <strong class="val-green" id="telemetry-snr-metric">38.4 dB</strong></div>
+                <div><span class="lbl">Stream Health:</span> <strong class="val-green" id="telemetry-stream-health">OPTIMAL (100%)</strong></div>
               </div>
             </div>
 
+            <!-- Plausibility Diagnostic Matrix -->
             <div class="panel-card matrix-panel">
               <div class="panel-header">
                 <div>
@@ -434,7 +449,7 @@
                     <strong class="m-title">Open-Circuit / Rail Boundary</strong>
                     <span class="m-desc">Saturation guard (0V / 3.3V out-of-range detection)</span>
                   </div>
-                  <span class="status-pill-pass" id="badge-chk-open">PASS</span>
+                  <span class="status-pill-pass" id="badge-chk-open">PASS (0.0V)</span>
                 </div>
 
                 <div class="matrix-row" id="chk-drift-row">
@@ -478,6 +493,87 @@
                 </div>
               </div>
             </div>
+          </div>
+
+          <!-- Extra Telemetry Tools: Channel Calibration & Dynamic Trimmer + Live Data Recording & Stats -->
+          <div class="telemetry-tools-grid">
+            
+            <!-- Channel Calibration & Offset Trimmer Rack -->
+            <div class="panel-card telemetry-trimmer-card">
+              <div class="panel-header">
+                <div>
+                  <span class="panel-kicker">ACTIVE TRANSDUCER CONDITIONING</span>
+                  <h3 class="panel-heading">Channel Offset Calibration &amp; Tolerance Bounds</h3>
+                  <span class="panel-subheading">Fine-tune digital trim offsets and dynamic cross-consensus corridor</span>
+                </div>
+                <button class="btn btn-sm btn-primary" id="btn-autozero-telemetry">
+                  Auto-Zero Calibrate
+                </button>
+              </div>
+
+              <div class="trimmer-sliders-layout">
+                <div class="trimmer-col">
+                  <div class="trimmer-label-row">
+                    <span>SENSOR A ZERO TRIM OFFSET</span>
+                    <strong class="val-mono" id="lbl-trim-a">0.00 &deg;C</strong>
+                  </div>
+                  <input type="range" class="tactile-slider" id="trim-s-a" min="-5.0" max="5.0" step="0.05" value="0.00">
+                  <div class="slider-ticks"><span>-5.0&deg;</span><span>0.0&deg;</span><span>+5.0&deg;</span></div>
+                </div>
+
+                <div class="trimmer-col">
+                  <div class="trimmer-label-row">
+                    <span>SENSOR B ZERO TRIM OFFSET</span>
+                    <strong class="val-mono" id="lbl-trim-b">0.00 &deg;C</strong>
+                  </div>
+                  <input type="range" class="tactile-slider" id="trim-s-b" min="-5.0" max="5.0" step="0.05" value="0.00">
+                  <div class="slider-ticks"><span>-5.0&deg;</span><span>0.0&deg;</span><span>+5.0&deg;</span></div>
+                </div>
+
+                <div class="trimmer-col">
+                  <div class="trimmer-label-row">
+                    <span>CONSENSUS TOLERANCE CORRIDOR (&plusmn;&Delta;T)</span>
+                    <strong class="val-mono val-blue" id="lbl-corridor-slider">&plusmn;1.20 &deg;C</strong>
+                  </div>
+                  <input type="range" class="tactile-slider" id="corridor-slider" min="0.2" max="4.0" step="0.05" value="1.20">
+                  <div class="slider-ticks"><span>0.2&deg; (Tight)</span><span>1.2&deg; (Nominal)</span><span>4.0&deg; (Wide)</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Live Session Data Logger & Statistical Distribution Histogram -->
+            <div class="panel-card telemetry-session-card">
+              <div class="panel-header">
+                <div>
+                  <span class="panel-kicker">DATA CAPTURE &bull; STATISTICAL AUDIT</span>
+                  <h3 class="panel-heading">High-Speed Session Logger &amp; Distribution</h3>
+                  <span class="panel-subheading">Record streaming telemetry frames and review Gaussian distribution curve</span>
+                </div>
+                <div class="session-rec-controls">
+                  <button class="btn btn-sm btn-danger" id="btn-rec-toggle">
+                    <span class="rec-dot" id="rec-dot"></span>
+                    <span id="txt-rec-btn">Start Recording</span>
+                  </button>
+                  <button class="btn btn-sm btn-secondary" id="btn-rec-csv" disabled>Export Session CSV</button>
+                  <button class="btn btn-sm btn-secondary" id="btn-rec-json" disabled>Export JSON</button>
+                </div>
+              </div>
+
+              <div class="session-metrics-strip">
+                <div><span class="lbl">Elapsed Time:</span> <strong class="val-mono" id="rec-timer">00:00:00</strong></div>
+                <div><span class="lbl">Logged Frames:</span> <strong class="val-mono" id="rec-frames">0</strong></div>
+                <div><span class="lbl">Mean &mu;_A:</span> <strong class="val-mono" id="stat-mean-a">24.20 &deg;C</strong></div>
+                <div><span class="lbl">Mean &mu;_B:</span> <strong class="val-mono" id="stat-mean-b">24.35 &deg;C</strong></div>
+                <div><span class="lbl">Variance &sigma;&sup2;:</span> <strong class="val-mono" id="stat-variance">0.042</strong></div>
+                <div><span class="lbl">Confidence 3&sigma;:</span> <strong class="val-green" id="stat-confidence">99.73%</strong></div>
+              </div>
+
+              <!-- Gaussian Distribution Canvas -->
+              <div class="canvas-distribution-holder">
+                <canvas id="canvas-telemetry-dist" height="80"></canvas>
+              </div>
+            </div>
+
           </div>
 
         </div>
@@ -530,6 +626,40 @@
                 </div>
               </div>
 
+              <!-- Advanced 3D Controls Rack (Exploded View, Orbit Speed, Caliper Tool, Spatial Tags) -->
+              <div class="twin-advanced-controls-bar">
+                <div class="twin-ctrl-item">
+                  <span class="ctrl-label">EXPLODED VIEW:</span>
+                  <input type="range" class="tactile-slider slider-sm" id="range-twin-explode" min="0" max="100" value="0">
+                  <strong class="val-mono" id="lbl-twin-explode">0%</strong>
+                </div>
+
+                <div class="twin-ctrl-item">
+                  <span class="ctrl-label">ORBIT SPEED:</span>
+                  <input type="range" class="tactile-slider slider-sm" id="range-twin-speed" min="0.2" max="3.0" step="0.2" value="1.0">
+                  <strong class="val-mono" id="lbl-twin-speed">1.0x</strong>
+                </div>
+
+                <div class="twin-ctrl-item">
+                  <button class="btn btn-sm btn-secondary" id="btn-tool-measure" title="Click two points on the 3D model to measure physical distance in mm">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12h20M7 8v8M17 8v8"/></svg>
+                    <span id="txt-tool-measure">Caliper Measure: OFF</span>
+                  </button>
+                </div>
+
+                <div class="twin-ctrl-item">
+                  <button class="btn btn-sm btn-secondary" id="btn-toggle-3d-tags" title="Toggle 3D Floating Spatial Telemetry Pins">
+                    <span id="txt-3d-tags">Spatial Pins: ON</span>
+                  </button>
+                </div>
+
+                <div class="twin-ctrl-item">
+                  <button class="btn btn-sm btn-secondary" id="btn-toggle-shadows" title="Toggle Real-Time Sun Directional Shadows">
+                    <span>Shadows: ON</span>
+                  </button>
+                </div>
+              </div>
+
               <!-- Quick-Focus Bench Hotspots Toolbar -->
               <div class="twin-hotspots-bar">
                 <span class="th-label">HOTSPOT FOCUS:</span>
@@ -544,6 +674,86 @@
 
               <div class="three-canvas-container" id="viewport-3d-box">
                 <canvas id="canvas-3d"></canvas>
+
+                <!-- Dynamic 3D Spatial HTML Pins Layer (projected directly over 3D world coordinates) -->
+                <div class="twin-spatial-pins-container" id="twin-spatial-tags-layer">
+                  <div class="spatial-pin pin-s1" id="spin-s1">
+                    <div class="sp-dot"></div>
+                    <div class="sp-card">
+                      <div class="sp-title">PROBE 1 &bull; PIN 34</div>
+                      <div class="sp-val val-red" id="spin-val-s1">DISC (0.00V)</div>
+                    </div>
+                  </div>
+
+                  <div class="spatial-pin pin-s2" id="spin-s2">
+                    <div class="sp-dot"></div>
+                    <div class="sp-card">
+                      <div class="sp-title">PROBE 2 &bull; PIN 35</div>
+                      <div class="sp-val val-orange" id="spin-val-s2">24.50 &deg;C &bull; FROZEN</div>
+                    </div>
+                  </div>
+
+                  <div class="spatial-pin pin-s3" id="spin-s3">
+                    <div class="sp-dot"></div>
+                    <div class="sp-card">
+                      <div class="sp-title">PROBE 3 &bull; PIN 32</div>
+                      <div class="sp-val val-purple" id="spin-val-s3">37.20 &deg;C &bull; +12.4&deg; BIAS</div>
+                    </div>
+                  </div>
+
+                  <div class="spatial-pin pin-s4" id="spin-s4">
+                    <div class="sp-dot"></div>
+                    <div class="sp-card">
+                      <div class="sp-title">PROBE 4 &bull; PIN 33</div>
+                      <div class="sp-val val-green" id="spin-val-s4">24.85 &deg;C &bull; ELECTED TRUTH</div>
+                    </div>
+                  </div>
+
+                  <div class="spatial-pin pin-esp32" id="spin-esp32">
+                    <div class="sp-dot"></div>
+                    <div class="sp-card">
+                      <div class="sp-title">ESP32 CORE &bull; ADC1</div>
+                      <div class="sp-val val-blue">240 MHz &bull; 10 Hz DMA</div>
+                    </div>
+                  </div>
+
+                  <div class="spatial-pin pin-scope" id="spin-scope">
+                    <div class="sp-dot"></div>
+                    <div class="sp-card">
+                      <div class="sp-title">BENCH OSCILLOSCOPE</div>
+                      <div class="sp-val">100 MSa/s &bull; 4-CH</div>
+                    </div>
+                  </div>
+
+                  <div class="spatial-pin pin-powersupply" id="spin-powersupply">
+                    <div class="sp-dot"></div>
+                    <div class="sp-card">
+                      <div class="sp-title">DC POWER SUPPLY</div>
+                      <div class="sp-val val-green">3.30V / 5.00V OK</div>
+                    </div>
+                  </div>
+
+                  <div class="spatial-pin pin-heatsink" id="spin-heatsink">
+                    <div class="sp-dot"></div>
+                    <div class="sp-card">
+                      <div class="sp-title">THERMAL DISSIPATION</div>
+                      <div class="sp-val" id="spin-val-heatsink">24.8 &deg;C &bull; NOMINAL</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 3D Measurement Caliper Readout Overlay -->
+                <div class="twin-measure-banner" id="twin-measure-banner">
+                  <div class="tmb-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20M7 8v8M17 8v8"/></svg>
+                  </div>
+                  <div class="tmb-content">
+                    <span class="tmb-title">3D CALIPER MEASUREMENT TOOL</span>
+                    <span class="tmb-sub" id="tmb-status-text">Click Point 1 on 3D geometry...</span>
+                  </div>
+                  <div class="tmb-result" id="tmb-distance-display">-- mm</div>
+                  <button class="btn btn-sm btn-secondary" id="btn-measure-clear">Clear Points</button>
+                </div>
                 
                 <!-- Floating Overlays on 3D Viewport (4 Probes) -->
                 <div class="twin-floating-overlay">
@@ -572,7 +782,7 @@
                   </div>
 
                   <div class="three-help-tag">
-                    Left Click + Drag: Orbit &bull; Right Click + Drag: Pan &bull; Scroll: Zoom &bull; Click Hotspots to Focus
+                    Left Drag: Orbit &bull; Right Drag: Pan &bull; Scroll: Zoom &bull; Click Mesh: Inspect &bull; Hotspots to Focus
                   </div>
                 </div>
 
@@ -628,66 +838,122 @@
               </div>
             </div>
 
-            <!-- Component Specifications Drawer -->
+            <!-- Component Specifications & Interactive Subsystem Isolator Drawer -->
             <div class="panel-card twin-specs-panel">
               <div class="panel-header">
-                <h3 class="panel-heading">Demonstration Rig Architecture</h3>
+                <div>
+                  <h3 class="panel-heading">Interactive Subsystem Isolator</h3>
+                  <span class="panel-subheading">Solo, hide or wireframe individual test bench assemblies</span>
+                </div>
                 <span class="badge-mini" id="twin-active-model-tag">BENCH RIG</span>
               </div>
 
-              <div class="comp-specs-list">
-                <div class="spec-card-item">
+              <!-- Subsystem Quick Filter -->
+              <div class="subsystem-search-box">
+                <input type="text" class="tactile-input" id="search-subsystems" placeholder="Filter CAD assemblies (e.g., scope, probe, esp32)...">
+              </div>
+
+              <div class="comp-specs-list" id="subsystem-items-list">
+                <!-- 1. Industrial Bench Chassis -->
+                <div class="spec-card-item" data-sub="overview">
                   <div class="sci-head">
-                    <span class="sci-badge">RIG</span>
-                    <strong>BenchTwin Industrial Workstation</strong>
-                    <span class="sci-tag tag-green">SYNCHRONIZED</span>
+                    <span class="sci-badge">CHASSIS</span>
+                    <strong>Bench Workstation Frame</strong>
+                    <div class="sci-actions">
+                      <button class="btn-sub-act btn-isolate" data-target="overview" title="Isolate & Focus">Focus</button>
+                      <button class="btn-sub-act btn-wire" data-target="overview" title="Toggle Wireframe">Wire</button>
+                    </div>
                   </div>
-                  <div class="sci-desc">Comprehensive test bench rig with dual power supply, waveform generator, digital oscilloscope and 4 sensor probe stations.</div>
+                  <div class="sci-desc">Heavy-duty aluminum extrusion workstation with integrated grounding bus &amp; cable management.</div>
                 </div>
 
-                <div class="spec-card-item">
+                <!-- 2. Oscilloscope -->
+                <div class="spec-card-item" data-sub="oscilloscope">
+                  <div class="sci-head">
+                    <span class="sci-badge">SCOPE</span>
+                    <strong>Digital Storage Oscilloscope</strong>
+                    <div class="sci-actions">
+                      <button class="btn-sub-act btn-isolate" data-target="oscilloscope" title="Isolate & Focus">Focus</button>
+                      <button class="btn-sub-act btn-wire" data-target="oscilloscope" title="Toggle Wireframe">Wire</button>
+                    </div>
+                  </div>
+                  <div class="sci-desc">4-channel 100MHz real-time sampling oscilloscope monitoring sensor probe test rails.</div>
+                </div>
+
+                <!-- 3. DC Power Supply -->
+                <div class="spec-card-item" data-sub="powersupply">
+                  <div class="sci-head">
+                    <span class="sci-badge">POWER</span>
+                    <strong>Triple DC Power Supply</strong>
+                    <div class="sci-actions">
+                      <button class="btn-sub-act btn-isolate" data-target="powersupply" title="Isolate & Focus">Focus</button>
+                      <button class="btn-sub-act btn-wire" data-target="powersupply" title="Toggle Wireframe">Wire</button>
+                    </div>
+                  </div>
+                  <div class="sci-desc">Low-noise 0-30V / 5A linear regulated dual-rail power stage supplying clean transducer rails.</div>
+                </div>
+
+                <!-- 4. Bench Multimeter -->
+                <div class="spec-card-item" data-sub="multimeter">
+                  <div class="sci-head">
+                    <span class="sci-badge">DMM</span>
+                    <strong>Bench Precision Multimeter</strong>
+                    <div class="sci-actions">
+                      <button class="btn-sub-act btn-isolate" data-target="multimeter" title="Isolate & Focus">Focus</button>
+                      <button class="btn-sub-act btn-wire" data-target="multimeter" title="Toggle Wireframe">Wire</button>
+                    </div>
+                  </div>
+                  <div class="sci-desc">6.5-digit True-RMS digital multimeter verifying reference calibration standards.</div>
+                </div>
+
+                <!-- 5. ESP32 Microcontroller Core -->
+                <div class="spec-card-item" data-sub="esp32">
                   <div class="sci-head">
                     <span class="sci-badge">U1</span>
-                    <strong>Microcontroller Core</strong>
-                    <span class="sci-tag tag-green">ONLINE</span>
+                    <strong>ESP32 Microcontroller Core</strong>
+                    <div class="sci-actions">
+                      <button class="btn-sub-act btn-isolate" data-target="esp32" title="Isolate & Focus">Focus</button>
+                      <button class="btn-sub-act btn-wire" data-target="esp32" title="Toggle Wireframe">Wire</button>
+                    </div>
                   </div>
-                  <div class="sci-desc">ESP32 32-bit Xtensa Dual-Core @ 240MHz. 12-bit SAR ADC (ADC1). Quad low-latency sampling firmware.</div>
+                  <div class="sci-desc">Xtensa Dual-Core 240MHz MCU executing 10Hz SAR ADC sampling, DMA buffering &amp; FSM isolation.</div>
                 </div>
 
-                <div class="spec-card-item">
+                <!-- 6. Quad Probes Array -->
+                <div class="spec-card-item" data-sub="probes">
                   <div class="sci-head">
-                    <span class="sci-badge">S1</span>
-                    <strong>Sensor 1 (Disconnected)</strong>
-                    <span class="sci-tag tag-red">DISCONNECTED</span>
+                    <span class="sci-badge">PROBES</span>
+                    <strong>Quad Sensor Probes Array</strong>
+                    <div class="sci-actions">
+                      <button class="btn-sub-act btn-isolate" data-target="probes" title="Isolate & Focus">Focus</button>
+                      <button class="btn-sub-act btn-wire" data-target="probes" title="Toggle Wireframe">Wire</button>
+                    </div>
                   </div>
-                  <div class="sci-desc">Wire severed simulation. ADC drops to ground rail (0V). Isolated by SENSEGuard boundary guard in &lt;15ms.</div>
+                  <div class="sci-desc">Four independent temperature probes (S1 Disconnected, S2 Crashed, S3 Biased, S4 Ground Truth).</div>
                 </div>
 
-                <div class="spec-card-item">
+                <!-- 7. Thermal Heatsink & Heater -->
+                <div class="spec-card-item" data-sub="heatsink">
                   <div class="sci-head">
-                    <span class="sci-badge">S2</span>
-                    <strong>Sensor 2 (Crashed)</strong>
-                    <span class="sci-tag tag-amber">FROZEN</span>
+                    <span class="sci-badge">THERMAL</span>
+                    <strong>Heatsink &amp; Heating Well</strong>
+                    <div class="sci-actions">
+                      <button class="btn-sub-act btn-isolate" data-target="heatsink" title="Isolate & Focus">Focus</button>
+                      <button class="btn-sub-act btn-wire" data-target="heatsink" title="Toggle Wireframe">Wire</button>
+                    </div>
                   </div>
-                  <div class="sci-desc">I2C / ADC buffer crash simulation. Zero variance detected on excitation (&sigma;&sup2; &lt; 0.005). Isolated in 780ms.</div>
+                  <div class="sci-desc">Ceramic excitation heater block with PWM cooling fan and aluminum finned heat dissipation matrix.</div>
                 </div>
+              </div>
 
-                <div class="spec-card-item">
-                  <div class="sci-head">
-                    <span class="sci-badge">S3</span>
-                    <strong>Sensor 3 (Wrong Reading)</strong>
-                    <span class="sci-tag tag-purple">BIASED OUTLIER</span>
-                  </div>
-                  <div class="sci-desc">Calibration bias fault (+12.5&deg;C discrepancy) rejected by median consensus filter in 110ms.</div>
-                </div>
-
-                <div class="spec-card-item">
-                  <div class="sci-head">
-                    <span class="sci-badge">S4</span>
-                    <strong>Sensor 4 (Successful)</strong>
-                    <span class="sci-tag tag-green">ELECTED TRUTH</span>
-                  </div>
-                  <div class="sci-desc">Fully verified, low-noise (39 dB SNR), healthy ground truth reference elected as authoritative system output.</div>
+              <!-- Live CAD Inspector Box -->
+              <div class="cad-inspector-box" id="cad-inspector-box">
+                <div class="cib-title">INSPECTED CAD COMPONENT</div>
+                <div class="cib-grid">
+                  <div><span>Selected Mesh:</span> <strong id="cad-mesh-name">BenchTwin Workstation</strong></div>
+                  <div><span>Material Type:</span> <strong id="cad-mesh-mat">PBR MeshStandard</strong></div>
+                  <div><span>Polygons:</span> <strong id="cad-mesh-poly">84,200 Triangles</strong></div>
+                  <div><span>Health Status:</span> <strong class="val-green" id="cad-mesh-health">OPTIMAL (100%)</strong></div>
                 </div>
               </div>
 

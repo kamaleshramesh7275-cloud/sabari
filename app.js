@@ -138,6 +138,21 @@ class SENSEGuardApp {
       cursorA: 0.35, // fraction of width
       cursorB: 0.75
     };
+ 
+    // Live Dual Telemetry State & Recording Engine
+    this.telemetry = {
+      paused: false,
+      timebaseSec: 30,
+      trimA: 0.0,
+      trimB: 0.0,
+      corridor: 1.2,
+      recording: false,
+      recStartTime: null,
+      recTimerInterval: null,
+      recordedFrames: [],
+      mouseOver: false,
+      cursorX: 0
+    };
 
     // Three.js 3D Digital Twin Engine
     this.three = {
@@ -157,6 +172,7 @@ class SENSEGuardApp {
       raycaster: new THREE.Raycaster(),
       mouse: new THREE.Vector2(-999, -999),
       hoveredMesh: null,
+      selectedMesh: null,
       heatmapMode: false,
       wireframeMode: false,
       gridVisible: true,
@@ -164,6 +180,26 @@ class SENSEGuardApp {
       cinematicTour: false,
       tourAngle: 0,
       isLoaded: false,
+      autoRotate: true,
+      orbitSpeed: 1.0,
+      explodeFactor: 0,
+      caliperActive: false,
+      caliperPoints: [],
+      caliperMarkers: [],
+      caliperLine: null,
+      spatialPinsVisible: true,
+      shadowsEnabled: true,
+      originalMeshPositions: new Map(),
+      spatialPinCoords: {
+        s1: new THREE.Vector3(-1.8, 2.2, 1.2),
+        s2: new THREE.Vector3(-0.6, 2.2, 1.2),
+        s3: new THREE.Vector3(0.6, 2.2, 1.2),
+        s4: new THREE.Vector3(1.8, 2.2, 1.2),
+        esp32: new THREE.Vector3(0, 1.2, 0),
+        scope: new THREE.Vector3(-6.2, 4.5, -0.8),
+        powersupply: new THREE.Vector3(6.2, 4.5, -0.8),
+        heatsink: new THREE.Vector3(3.8, 2.2, 0.6)
+      },
       pipScene: null,
       pipCamera: null,
       pipRenderer: null
@@ -509,6 +545,8 @@ class SENSEGuardApp {
     this.updateQuadCards(quadPoint);
     this.updateGlobalStatusStrip(quadPoint);
     this.update3DOverlay(quadPoint);
+    this.updateSpatialPins(quadPoint);
+    this.updateTelemetryHUD(quadPoint);
     this.updatePipelineDiagram(quadPoint);
     this.updateLatencyBanner();
     this.updateSummaryKPIs();
@@ -600,6 +638,133 @@ class SENSEGuardApp {
     }
   }
 
+  updateTelemetryHUD(point) {
+    const sA = (point.s4 !== null ? point.s4 : 24.8) + this.telemetry.trimA;
+    const sB = (point.s3 !== null ? point.s3 : 37.2) + this.telemetry.trimB;
+    const delta = Math.abs(sA - sB);
+    const rate = point.rateOfChange;
+
+    const elA = document.getElementById('hud-val-a');
+    const elB = document.getElementById('hud-val-b');
+    const elDelta = document.getElementById('hud-val-delta');
+    const elRate = document.getElementById('hud-val-rate');
+    const elRateSub = document.getElementById('hud-rate-sub');
+
+    if (elA) elA.innerHTML = `${sA.toFixed(2)}<span class="unit">${this.state.tempUnit === 'F' ? '°F' : '°C'}</span>`;
+    if (elB) elB.innerHTML = `${sB.toFixed(2)}<span class="unit">${this.state.tempUnit === 'F' ? '°F' : '°C'}</span>`;
+    if (elDelta) elDelta.innerHTML = `${delta.toFixed(2)}<span class="unit">${this.state.tempUnit === 'F' ? '°F' : '°C'}</span>`;
+    if (elRate) elRate.innerHTML = `${rate >= 0 ? '+' : ''}${rate.toFixed(2)}<span class="unit">°C/s</span>`;
+    if (elRateSub) elRateSub.textContent = Math.abs(rate) > 0.4 ? 'Rapid Thermal Shift' : 'Steady State';
+
+    // Trust Calculation & FSM Classification
+    let trust = 99;
+    let classification = 'OPTIMAL (NORMAL)';
+    let pillClass = 'pill-large-normal';
+    let details = 'Dual-sensor consensus verified within ±' + this.telemetry.corridor.toFixed(2) + '°C corridor. Both transducers exhibiting nominal variance and low noise. All plausibility criteria satisfied.';
+
+    if (this.state.activeScenario === 'process_surge') {
+      trust = 97;
+      classification = 'PROCESS SURGE (REAL)';
+      pillClass = 'pill-large-surge';
+      details = 'Real thermal excitation detected simultaneously across channels (dT/dt > 0.8°C/s). Rate convergence verified. Zero false emergency shutdowns.';
+    } else if (this.diagnostics.s1Disconnected || this.diagnostics.s2Crashed || this.diagnostics.s3Wrong) {
+      let penalty = 0;
+      if (this.diagnostics.s1Disconnected) penalty += 25;
+      if (this.diagnostics.s2Crashed) penalty += 25;
+      if (this.diagnostics.s3Wrong) penalty += 20;
+      trust = Math.max(18, 98 - penalty);
+      classification = 'TRANSDUCER FAULT';
+      pillClass = 'pill-large-fault';
+      details = 'Transducer failure isolated. S1/S2/S3 failed plausibility verification. Autonomous median consensus elected healthy reference (Sensor 4).';
+    }
+
+    const digitEl = document.getElementById('hud-trust-digit');
+    const ringEl = document.getElementById('hud-ring-fill');
+    if (digitEl) digitEl.textContent = Math.round(trust);
+    if (ringEl) {
+      const circ = 339.29;
+      ringEl.style.strokeDashoffset = (circ * (1 - trust / 100)).toFixed(1);
+    }
+
+    const pillEl = document.getElementById('hud-class-pill');
+    const titleEl = document.getElementById('hud-class-title');
+    const detailsEl = document.getElementById('hud-class-details');
+    if (pillEl) {
+      pillEl.className = 'status-pill-large ' + pillClass;
+    }
+    if (titleEl) titleEl.textContent = classification;
+    if (detailsEl) detailsEl.textContent = details;
+
+    // Plausibility Rows
+    const bOpen = document.getElementById('badge-chk-open');
+    const bDrift = document.getElementById('badge-chk-drift');
+    const bStuck = document.getElementById('badge-chk-stuck');
+    const bNoise = document.getElementById('badge-chk-noise');
+    const bVerdict = document.getElementById('hud-verdict-summary');
+
+    if (bOpen) {
+      bOpen.textContent = this.diagnostics.s1Disconnected ? 'FAIL (0.00V)' : 'PASS (3.30V)';
+      bOpen.className = this.diagnostics.s1Disconnected ? 'status-pill-fail' : 'status-pill-pass';
+    }
+    if (bDrift) {
+      bDrift.textContent = this.diagnostics.s3Wrong ? 'FAIL (+12.4°C)' : 'PASS (0.02°C/m)';
+      bDrift.className = this.diagnostics.s3Wrong ? 'status-pill-fail' : 'status-pill-pass';
+    }
+    if (bStuck) {
+      bStuck.textContent = this.diagnostics.s2Crashed ? 'FAIL (ZERO VAR)' : 'PASS (DYNAMIC)';
+      bStuck.className = this.diagnostics.s2Crashed ? 'status-pill-fail' : 'status-pill-pass';
+    }
+    if (bNoise) {
+      bNoise.textContent = this.sim.noiseAmp > 0.3 ? 'FAIL (18 dB)' : '38 dB (CLEAN)';
+      bNoise.className = this.sim.noiseAmp > 0.3 ? 'status-pill-fail' : 'status-pill-pass';
+    }
+    if (bVerdict) {
+      bVerdict.textContent = trust > 85 
+        ? 'All physical and statistical checks passed. Transducers are fully calibrated and verified.' 
+        : 'Active anomaly sequence: Outlier channels isolated by rate-of-change and consensus voting filters.';
+    }
+
+    // Telemetry footer metrics
+    const dataCountEl = document.getElementById('datapoints-counter');
+    if (dataCountEl) dataCountEl.textContent = `${this.totalLoggedCount} samples`;
+
+    const streamHealth = document.getElementById('telemetry-stream-health');
+    if (streamHealth) {
+      streamHealth.textContent = trust > 80 ? 'OPTIMAL (100%)' : `DEGRADED (${Math.round(trust)}%)`;
+      streamHealth.className = trust > 80 ? 'val-green' : 'val-orange';
+    }
+
+    // Session Data Recording
+    if (this.telemetry.recording) {
+      const elapsedSec = Math.floor((Date.now() - this.telemetry.recStartTime) / 1000);
+      const hh = String(Math.floor(elapsedSec / 3600)).padStart(2, '0');
+      const mm = String(Math.floor((elapsedSec % 3600) / 60)).padStart(2, '0');
+      const ss = String(elapsedSec % 60).padStart(2, '0');
+      const timerEl = document.getElementById('rec-timer');
+      if (timerEl) timerEl.textContent = `${hh}:${mm}:${ss}`;
+
+      this.telemetry.recordedFrames.push({
+        timestamp: new Date().toISOString(),
+        elapsedSec,
+        sensorA: sA,
+        sensorB: sB,
+        delta: delta,
+        consensus: point.consensus,
+        classification
+      });
+
+      const framesEl = document.getElementById('rec-frames');
+      if (framesEl) framesEl.textContent = this.telemetry.recordedFrames.length;
+
+      const statMeanA = document.getElementById('stat-mean-a');
+      const statMeanB = document.getElementById('stat-mean-b');
+      const statVar = document.getElementById('stat-variance');
+      if (statMeanA) statMeanA.textContent = this.formatTemp(sA);
+      if (statMeanB) statMeanB.textContent = this.formatTemp(sB);
+      if (statVar) statVar.textContent = (delta * 0.05).toFixed(3);
+    }
+  }
+
   updatePipelineDiagram(point) {
     const rateEl = document.getElementById('pipe-val-rate');
     if (rateEl) {
@@ -670,6 +835,8 @@ class SENSEGuardApp {
     this.three.renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
     this.three.renderer.setPixelRatio(window.devicePixelRatio);
     this.three.renderer.setSize(rect.width || 800, rect.height || 500);
+    this.three.renderer.shadowMap.enabled = true;
+    this.three.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     this.three.controls = new THREE.OrbitControls(this.three.camera, this.three.renderer.domElement);
     this.three.controls.enableDamping = true;
@@ -681,6 +848,9 @@ class SENSEGuardApp {
 
     this.three.keyLight = new THREE.DirectionalLight(0xffffff, 1.5);
     this.three.keyLight.position.set(15, 25, 18);
+    this.three.keyLight.castShadow = true;
+    this.three.keyLight.shadow.mapSize.width = 1024;
+    this.three.keyLight.shadow.mapSize.height = 1024;
     this.three.scene.add(this.three.keyLight);
 
     // 4 Point Lights for the 4 sensor probe pins
@@ -707,9 +877,10 @@ class SENSEGuardApp {
     // Load both 3D models (BenchTwin and Circuit Board)
     this.load3DModels();
 
-    // Raycasting Event Handlers
+    // Raycasting & Interaction Event Handlers
     canvas.addEventListener('mousemove', (e) => this.on3DMouseMove(e));
     canvas.addEventListener('mouseleave', () => this.on3DMouseLeave());
+    canvas.addEventListener('click', (e) => this.on3DCanvasClick(e));
 
     // 3D Animation & Render Loop
     const animate3D = () => {
@@ -725,11 +896,14 @@ class SENSEGuardApp {
 
       this.three.controls.update();
 
-      // Slow rotation on active model if idle
+      // Slow rotation on active model if idle and enabled
       const activeObj = this.three.models[this.three.activeModel];
-      if (activeObj && !this.three.controls.state && !this.three.cinematicTour) {
-        activeObj.rotation.y += 0.001;
+      if (activeObj && this.three.autoRotate && !this.three.controls.state && !this.three.cinematicTour) {
+        activeObj.rotation.y += 0.001 * this.three.orbitSpeed;
       }
+
+      // Render 3D Spatial HTML Overlays
+      this.render3DSpatialPins();
 
       if (this.state.activePage === 'page-digital-twin') {
         this.three.renderer.render(this.three.scene, this.three.camera);
@@ -760,9 +934,24 @@ class SENSEGuardApp {
       bench.position.y = -box.min.y * scale;
       bench.position.z = -center.z * scale;
 
+      let vertexCount = 0;
+      bench.traverse(child => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+          this.three.originalMeshPositions.set(child.id, child.position.clone());
+          if (child.geometry?.attributes?.position) {
+            vertexCount += child.geometry.attributes.position.count;
+          }
+        }
+      });
+
       this.three.models.bench = bench;
       this.three.scene.add(bench);
       this.three.isLoaded = true;
+
+      const polyEl = document.getElementById('cad-mesh-poly');
+      if (polyEl) polyEl.textContent = `${vertexCount.toLocaleString()} Vertices`;
 
       if (loaderBar) loaderBar.style.width = '100%';
       setTimeout(() => {
@@ -883,6 +1072,180 @@ class SENSEGuardApp {
       if (descEl) descEl.textContent = `Focus locked on ${target}. Sensor telemetry and physical parameters synchronized.`;
       setTimeout(() => flyout.classList.remove('active'), 3500);
     }
+    this.playRelayClick();
+  }
+
+  render3DSpatialPins() {
+    if (!this.three.camera || !this.three.spatialPinsVisible) {
+      document.querySelectorAll('.spatial-pin').forEach(pin => pin.classList.add('hidden'));
+      return;
+    }
+
+    const container = document.getElementById('viewport-3d-box');
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+
+    for (const [key, coords] of Object.entries(this.three.spatialPinCoords)) {
+      const pinEl = document.getElementById(`spin-${key}`);
+      if (!pinEl) continue;
+
+      const v = coords.clone();
+      const activeObj = this.three.models[this.three.activeModel];
+      if (activeObj) {
+        v.applyMatrix4(activeObj.matrixWorld);
+      }
+
+      v.project(this.three.camera);
+
+      // Hide if behind camera or too far off-screen
+      if (v.z > 1.0 || v.z < -1.0 || Math.abs(v.x) > 1.25 || Math.abs(v.y) > 1.25) {
+        pinEl.classList.add('hidden');
+      } else {
+        pinEl.classList.remove('hidden');
+        const x = (v.x * 0.5 + 0.5) * rect.width;
+        const y = (-(v.y * 0.5) + 0.5) * rect.height;
+        pinEl.style.left = `${x}px`;
+        pinEl.style.top = `${y}px`;
+      }
+    }
+  }
+
+  updateSpatialPins(point) {
+    const p1 = document.getElementById('spin-val-s1');
+    const p2 = document.getElementById('spin-val-s2');
+    const p3 = document.getElementById('spin-val-s3');
+    const p4 = document.getElementById('spin-val-s4');
+    const hs = document.getElementById('spin-val-heatsink');
+
+    if (p1) p1.textContent = point.s1 !== null ? this.formatTemp(point.s1) : 'DISC (0.00V)';
+    if (p2) p2.textContent = `${this.formatTemp(point.s2)} • ${this.quadState.s2Fault === 'CRASHED' ? 'FROZEN' : 'ACTIVE'}`;
+    if (p3) p3.textContent = `${this.formatTemp(point.s3)} • ${this.quadState.s3Fault === 'WRONG' ? '+12.4° BIAS' : 'CALIBRATED'}`;
+    if (p4) p4.textContent = `${point.s4 !== null ? this.formatTemp(point.s4) : 'OFFLINE'} • ELECTED TRUTH`;
+    if (hs) hs.textContent = `${this.formatTemp(this.sim.currentProcessTemp)} • ${this.sim.heaterPower > 40 ? 'HEATING' : this.sim.fanPWM > 40 ? 'COOLING' : 'NOMINAL'}`;
+  }
+
+  update3DExplode(factor) {
+    this.three.explodeFactor = factor;
+    const lbl = document.getElementById('lbl-twin-explode');
+    if (lbl) lbl.textContent = `${factor}%`;
+
+    const bench = this.three.models.bench;
+    if (!bench) return;
+
+    bench.traverse(child => {
+      if (child.isMesh && this.three.originalMeshPositions.has(child.id)) {
+        const origPos = this.three.originalMeshPositions.get(child.id);
+        const dir = origPos.clone().normalize();
+        if (dir.lengthSq() < 0.001) dir.set(0, 1, 0);
+        child.position.copy(origPos).addScaledVector(dir, (factor / 100) * 4.5);
+      }
+    });
+  }
+
+  on3DCanvasClick(e) {
+    const canvas = document.getElementById('canvas-3d');
+    if (!canvas || !this.three.camera) return;
+    const rect = canvas.getBoundingClientRect();
+    this.three.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    this.three.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+    this.three.raycaster.setFromCamera(this.three.mouse, this.three.camera);
+    const activeModel = this.three.models[this.three.activeModel];
+    if (!activeModel) return;
+
+    const intersects = this.three.raycaster.intersectObjects(activeModel.children, true);
+    if (intersects.length === 0) return;
+
+    const hit = intersects[0];
+
+    // Caliper measurement workflow
+    if (this.three.caliperActive) {
+      this.handleCaliperPoint(hit.point);
+      return;
+    }
+
+    // Select mesh in CAD Inspector
+    this.selectCADMesh(hit.object);
+  }
+
+  handleCaliperPoint(point) {
+    this.three.caliperPoints.push(point);
+
+    const markerGeo = new THREE.SphereGeometry(0.12, 16, 16);
+    const markerMat = new THREE.MeshBasicMaterial({ color: 0x38BDF8 });
+    const marker = new THREE.Mesh(markerGeo, markerMat);
+    marker.position.copy(point);
+    this.three.scene.add(marker);
+    this.three.caliperMarkers.push(marker);
+
+    const statusText = document.getElementById('tmb-status-text');
+    const distDisplay = document.getElementById('tmb-distance-display');
+
+    if (this.three.caliperPoints.length === 1) {
+      if (statusText) statusText.textContent = `Point 1 set at [${point.x.toFixed(2)}, ${point.y.toFixed(2)}, ${point.z.toFixed(2)}]. Click Point 2...`;
+    } else if (this.three.caliperPoints.length >= 2) {
+      const p1 = this.three.caliperPoints[0];
+      const p2 = this.three.caliperPoints[1];
+      const distance = p1.distanceTo(p2);
+      const mm = (distance * 100).toFixed(1);
+
+      if (distDisplay) distDisplay.textContent = `${mm} mm`;
+      if (statusText) statusText.textContent = `Distance: ${mm} mm (±0.1 mm precision). Click Clear to reset.`;
+
+      const lineGeo = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+      const lineMat = new THREE.LineBasicMaterial({ color: 0x38BDF8, linewidth: 2 });
+      this.three.caliperLine = new THREE.Line(lineGeo, lineMat);
+      this.three.scene.add(this.three.caliperLine);
+
+      this.playSuccessChime();
+    }
+  }
+
+  clearCaliperMeasurement() {
+    this.three.caliperPoints = [];
+    this.three.caliperMarkers.forEach(m => this.three.scene.remove(m));
+    this.three.caliperMarkers = [];
+    if (this.three.caliperLine) {
+      this.three.scene.remove(this.three.caliperLine);
+      this.three.caliperLine = null;
+    }
+    const statusText = document.getElementById('tmb-status-text');
+    const distDisplay = document.getElementById('tmb-distance-display');
+    if (statusText) statusText.textContent = 'Click Point 1 on 3D geometry...';
+    if (distDisplay) distDisplay.textContent = '-- mm';
+    this.playRelayClick();
+  }
+
+  selectCADMesh(mesh) {
+    this.three.selectedMesh = mesh;
+    const nameEl = document.getElementById('cad-mesh-name');
+    const matEl = document.getElementById('cad-mesh-mat');
+    const polyEl = document.getElementById('cad-mesh-poly');
+    const healthEl = document.getElementById('cad-mesh-health');
+
+    if (nameEl) nameEl.textContent = mesh.name || `CAD Mesh #${mesh.id}`;
+    if (matEl) matEl.textContent = mesh.material?.type || 'PBR MeshStandard';
+    if (polyEl) polyEl.textContent = `${mesh.geometry?.attributes?.position?.count || 1200} Vertices`;
+    if (healthEl) healthEl.textContent = 'OPTIMAL (100%)';
+
+    this.playRelayClick();
+  }
+
+  isolateSubsystem(target) {
+    this.focusBenchHotspot(target);
+    this.playRelayClick();
+  }
+
+  toggleSubsystemWireframe(target) {
+    const activeModel = this.three.models[this.three.activeModel];
+    if (!activeModel) return;
+
+    activeModel.traverse(node => {
+      if (node.isMesh && node.material) {
+        node.material.wireframe = !node.material.wireframe;
+      }
+    });
     this.playRelayClick();
   }
 
@@ -1275,6 +1638,209 @@ class SENSEGuardApp {
 
     ctx.fillStyle = this.state.theme === 'dark' ? '#0F172A' : '#FFFFFF';
     ctx.fillRect(0, 0, width, height);
+
+    if (this.quadHistory.length < 2) return;
+    const windowPoints = this.telemetry.timebaseSec * this.config.sampleRateHz;
+    const visibleData = this.quadHistory.slice(-windowPoints);
+    if (visibleData.length < 2) return;
+
+    let minT = 16, maxT = 44;
+    const padLeft = 48, padRight = 18, padTop = 18, padBottom = 26;
+    const chartW = width - padLeft - padRight;
+    const chartH = height - padTop - padBottom;
+
+    const getX = (idx) => padLeft + (idx / (visibleData.length - 1)) * chartW;
+    const getY = (val) => padTop + chartH - ((val - minT) / (maxT - minT)) * chartH;
+
+    // Grid lines & Axis labels
+    ctx.strokeStyle = this.state.theme === 'dark' ? '#1E293B' : '#F1F5F9';
+    ctx.lineWidth = 1;
+    ctx.fillStyle = this.state.theme === 'dark' ? '#94A3B8' : '#64748B';
+    ctx.font = '11px "JetBrains Mono", monospace';
+    ctx.textAlign = 'right';
+
+    for (let i = 0; i <= 5; i++) {
+      const yVal = minT + (i / 5) * (maxT - minT);
+      const yPos = getY(yVal);
+      ctx.beginPath(); ctx.moveTo(padLeft, yPos); ctx.lineTo(width - padRight, yPos); ctx.stroke();
+      ctx.fillText(`${yVal.toFixed(0)}°`, padLeft - 6, yPos + 4);
+    }
+
+    // Dynamic Consensus Tolerance Corridor Envelope (Shaded polygon)
+    const corridor = this.telemetry.corridor;
+    ctx.fillStyle = this.state.theme === 'dark' ? 'rgba(56, 189, 248, 0.08)' : 'rgba(2, 132, 199, 0.08)';
+    ctx.beginPath();
+    for (let i = 0; i < visibleData.length; i++) {
+      const topY = getY(visibleData[i].consensus + corridor);
+      if (i === 0) ctx.moveTo(getX(i), topY);
+      else ctx.lineTo(getX(i), topY);
+    }
+    for (let i = visibleData.length - 1; i >= 0; i--) {
+      const botY = getY(visibleData[i].consensus - corridor);
+      ctx.lineTo(getX(i), botY);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    // Corridor Boundary Lines (Dotted)
+    ctx.strokeStyle = this.state.theme === 'dark' ? 'rgba(56, 189, 248, 0.35)' : 'rgba(2, 132, 199, 0.35)';
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    for (let i = 0; i < visibleData.length; i++) {
+      const topY = getY(visibleData[i].consensus + corridor);
+      if (i === 0) ctx.moveTo(getX(i), topY); else ctx.lineTo(getX(i), topY);
+    }
+    ctx.stroke();
+
+    ctx.beginPath();
+    for (let i = 0; i < visibleData.length; i++) {
+      const botY = getY(visibleData[i].consensus - corridor);
+      if (i === 0) ctx.moveTo(getX(i), botY); else ctx.lineTo(getX(i), botY);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Consensus Trace (Teal / Blue)
+    ctx.strokeStyle = '#0284C7';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    for (let i = 0; i < visibleData.length; i++) {
+      const x = getX(i), y = getY(visibleData[i].consensus);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Sensor A (Channel 1, Orange / Red - mapped to S4 + trimA)
+    ctx.strokeStyle = '#EA580C';
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    for (let i = 0; i < visibleData.length; i++) {
+      const valA = (visibleData[i].s4 !== null ? visibleData[i].s4 : 24.8) + this.telemetry.trimA;
+      const x = getX(i), y = getY(valA);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Sensor B (Channel 2, Purple / Blue - mapped to S3 + trimB)
+    ctx.strokeStyle = '#8B5CF6';
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    for (let i = 0; i < visibleData.length; i++) {
+      const valB = (visibleData[i].s3 !== null ? visibleData[i].s3 : 37.2) + this.telemetry.trimB;
+      const x = getX(i), y = getY(valB);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Interactive Crosshair Inspector
+    if (this.telemetry.mouseOver && this.telemetry.cursorX >= padLeft && this.telemetry.cursorX <= width - padRight) {
+      const ratio = (this.telemetry.cursorX - padLeft) / chartW;
+      const idx = Math.min(visibleData.length - 1, Math.max(0, Math.round(ratio * (visibleData.length - 1))));
+      const pt = visibleData[idx];
+      const curX = getX(idx);
+
+      ctx.strokeStyle = this.state.theme === 'dark' ? '#38BDF8' : '#0284C7';
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(curX, padTop); ctx.lineTo(curX, height - padBottom); ctx.stroke();
+      ctx.setLineDash([]);
+
+      const valA = (pt.s4 !== null ? pt.s4 : 24.8) + this.telemetry.trimA;
+      const valB = (pt.s3 !== null ? pt.s3 : 37.2) + this.telemetry.trimB;
+      const delta = Math.abs(valA - valB);
+      const isCorridorPass = delta <= corridor * 2;
+
+      // Draw intersection dots
+      const yA = getY(valA), yB = getY(valB), yCons = getY(pt.consensus);
+      ctx.fillStyle = '#EA580C'; ctx.beginPath(); ctx.arc(curX, yA, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#8B5CF6'; ctx.beginPath(); ctx.arc(curX, yB, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#0284C7'; ctx.beginPath(); ctx.arc(curX, yCons, 5, 0, Math.PI * 2); ctx.fill();
+
+      const hudText = document.getElementById('canvas-hud-text');
+      if (hudText) {
+        hudText.textContent = `Cursor: Sensor A: ${valA.toFixed(2)}°C | Sensor B: ${valB.toFixed(2)}°C | ΔT: ${delta.toFixed(2)}°C | Corridor: ±${corridor.toFixed(2)}°C (${isCorridorPass ? 'PASS' : 'OUTLIER'})`;
+      }
+    }
+
+    // Also draw the distribution histogram
+    this.drawDistributionHistogram(visibleData);
+  }
+
+  drawDistributionHistogram(data) {
+    const canvas = document.getElementById('canvas-telemetry-dist');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const w = canvas.width = canvas.parentElement.clientWidth;
+    const h = canvas.height = canvas.parentElement.clientHeight || 80;
+
+    ctx.fillStyle = this.state.theme === 'dark' ? '#0F172A' : '#F8FAFC';
+    ctx.fillRect(0, 0, w, h);
+
+    if (data.length < 5) return;
+
+    let sumA = 0, sumB = 0;
+    data.forEach(d => {
+      sumA += (d.s4 !== null ? d.s4 : 24.8) + this.telemetry.trimA;
+      sumB += (d.s3 !== null ? d.s3 : 37.2) + this.telemetry.trimB;
+    });
+    const meanA = sumA / data.length;
+    const meanB = sumB / data.length;
+
+    let varA = 0, varB = 0;
+    data.forEach(d => {
+      const va = ((d.s4 !== null ? d.s4 : 24.8) + this.telemetry.trimA) - meanA;
+      const vb = ((d.s3 !== null ? d.s3 : 37.2) + this.telemetry.trimB) - meanB;
+      varA += va * va;
+      varB += vb * vb;
+    });
+    const stdA = Math.max(0.2, Math.sqrt(varA / data.length));
+    const stdB = Math.max(0.2, Math.sqrt(varB / data.length));
+
+    const minVal = 18, maxVal = 42;
+    const gaussian = (x, mean, std) => {
+      const exp = Math.exp(-0.5 * Math.pow((x - mean) / std, 2));
+      return (1 / (std * Math.sqrt(2 * Math.PI))) * exp;
+    };
+
+    // Curve A (Orange)
+    ctx.strokeStyle = '#EA580C';
+    ctx.lineWidth = 2;
+    ctx.fillStyle = 'rgba(234, 88, 12, 0.15)';
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    for (let px = 0; px <= w; px += 4) {
+      const v = minVal + (px / w) * (maxVal - minVal);
+      const prob = gaussian(v, meanA, stdA);
+      const y = h - prob * h * 1.6;
+      ctx.lineTo(px, Math.max(4, y));
+    }
+    ctx.lineTo(w, h);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Curve B (Purple)
+    ctx.strokeStyle = '#8B5CF6';
+    ctx.lineWidth = 2;
+    ctx.fillStyle = 'rgba(139, 92, 246, 0.15)';
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    for (let px = 0; px <= w; px += 4) {
+      const v = minVal + (px / w) * (maxVal - minVal);
+      const prob = gaussian(v, meanB, stdB);
+      const y = h - prob * h * 1.6;
+      ctx.lineTo(px, Math.max(4, y));
+    }
+    ctx.lineTo(w, h);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = this.state.theme === 'dark' ? '#94A3B8' : '#64748B';
+    ctx.font = '9.5px "JetBrains Mono", monospace';
+    ctx.fillText(`μ_A: ${meanA.toFixed(1)}° (σ=${stdA.toFixed(2)})`, 10, 16);
+    ctx.fillText(`μ_B: ${meanB.toFixed(1)}° (σ=${stdB.toFixed(2)})`, w - 160, 16);
   }
 
   // =====================================================================
@@ -1740,6 +2306,243 @@ class SENSEGuardApp {
       this.eventLogs = [];
       const tbody = document.getElementById('audit-table-body');
       if (tbody) tbody.innerHTML = '';
+    });
+
+    // -------------------------------------------------------------
+    // Supercharged Live Dual Telemetry Event Handlers
+    // -------------------------------------------------------------
+    // 1. Pause/Resume Live Waveform Stream
+    document.getElementById('btn-telemetry-pause')?.addEventListener('click', () => {
+      this.telemetry.paused = !this.telemetry.paused;
+      const txt = document.getElementById('txt-telemetry-pause');
+      if (txt) txt.textContent = this.telemetry.paused ? 'Resume Stream' : 'Freeze Stream';
+      this.playRelayClick();
+    });
+
+    // 2. Clear Buffer
+    document.getElementById('btn-telemetry-clear')?.addEventListener('click', () => {
+      this.quadHistory = [];
+      this.playRelayClick();
+    });
+
+    // 3. Snapshot Chart PNG
+    document.getElementById('btn-telemetry-snapshot')?.addEventListener('click', () => {
+      if (!this.canvas2D) return;
+      const link = document.createElement('a');
+      link.download = `SENSEGuard_Telemetry_${Date.now()}.png`;
+      link.href = this.canvas2D.toDataURL('image/png');
+      link.click();
+      this.playSuccessChime();
+    });
+
+    // 4. Timebase Buttons in Telemetry Page
+    document.querySelectorAll('#page-telemetry .btn-time').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#page-telemetry .btn-time').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.telemetry.timebaseSec = parseInt(btn.dataset.sec, 10);
+        this.playRelayClick();
+      });
+    });
+
+    // 5. Crosshair Mouse Tracking on Telemetry Canvas
+    if (this.canvas2D) {
+      this.canvas2D.addEventListener('mousemove', (e) => {
+        const rect = this.canvas2D.getBoundingClientRect();
+        this.telemetry.mouseOver = true;
+        this.telemetry.cursorX = e.clientX - rect.left;
+      });
+      this.canvas2D.addEventListener('mouseleave', () => {
+        this.telemetry.mouseOver = false;
+        const hud = document.getElementById('canvas-hud-text');
+        if (hud) hud.textContent = 'Inspect: Move cursor over chart';
+      });
+    }
+
+    // 6. Sensor Offset Trimmer Sliders
+    const trimAInput = document.getElementById('trim-s-a');
+    const lblTrimA = document.getElementById('lbl-trim-a');
+    if (trimAInput) {
+      trimAInput.addEventListener('input', (e) => {
+        this.telemetry.trimA = parseFloat(e.target.value);
+        if (lblTrimA) lblTrimA.textContent = `${this.telemetry.trimA >= 0 ? '+' : ''}${this.telemetry.trimA.toFixed(2)} °C`;
+      });
+    }
+
+    const trimBInput = document.getElementById('trim-s-b');
+    const lblTrimB = document.getElementById('lbl-trim-b');
+    if (trimBInput) {
+      trimBInput.addEventListener('input', (e) => {
+        this.telemetry.trimB = parseFloat(e.target.value);
+        if (lblTrimB) lblTrimB.textContent = `${this.telemetry.trimB >= 0 ? '+' : ''}${this.telemetry.trimB.toFixed(2)} °C`;
+      });
+    }
+
+    // 7. Dynamic Corridor Slider
+    const corrSlider = document.getElementById('corridor-slider');
+    const lblCorrSlider = document.getElementById('lbl-corridor-slider');
+    const corrIndicator = document.getElementById('corridor-indicator');
+    if (corrSlider) {
+      corrSlider.addEventListener('input', (e) => {
+        this.telemetry.corridor = parseFloat(e.target.value);
+        if (lblCorrSlider) lblCorrSlider.textContent = `±${this.telemetry.corridor.toFixed(2)} °C`;
+        if (corrIndicator) corrIndicator.textContent = `±${this.telemetry.corridor.toFixed(2)} °C`;
+      });
+    }
+
+    // 8. Auto-Zero Calibrate
+    document.getElementById('btn-autozero-telemetry')?.addEventListener('click', () => {
+      this.telemetry.trimA = 0.0;
+      this.telemetry.trimB = -this.quadState.s3Offset;
+      if (trimAInput) trimAInput.value = 0.0;
+      if (trimBInput) trimBInput.value = -this.quadState.s3Offset;
+      if (lblTrimA) lblTrimA.textContent = '0.00 °C';
+      if (lblTrimB) lblTrimB.textContent = `${(-this.quadState.s3Offset).toFixed(2)} °C`;
+      this.playSuccessChime();
+    });
+
+    // 9. High-Speed Session Recorder
+    const btnRec = document.getElementById('btn-rec-toggle');
+    const txtRec = document.getElementById('txt-rec-btn');
+    const btnRecCSV = document.getElementById('btn-rec-csv');
+    const btnRecJSON = document.getElementById('btn-rec-json');
+
+    if (btnRec) {
+      btnRec.addEventListener('click', () => {
+        this.telemetry.recording = !this.telemetry.recording;
+        if (this.telemetry.recording) {
+          this.telemetry.recStartTime = Date.now();
+          this.telemetry.recordedFrames = [];
+          if (txtRec) txtRec.textContent = 'Stop Recording';
+          btnRec.classList.replace('btn-danger', 'btn-primary');
+          if (btnRecCSV) btnRecCSV.disabled = false;
+          if (btnRecJSON) btnRecJSON.disabled = false;
+          this.playAlarmChime();
+        } else {
+          if (txtRec) txtRec.textContent = 'Start Recording';
+          btnRec.classList.replace('btn-primary', 'btn-danger');
+          this.playSuccessChime();
+        }
+      });
+    }
+
+    if (btnRecCSV) {
+      btnRecCSV.addEventListener('click', () => {
+        if (!this.telemetry.recordedFrames.length) return;
+        const csvRows = ['Timestamp,ElapsedSec,SensorA,SensorB,Delta,Consensus,Classification'];
+        this.telemetry.recordedFrames.forEach(f => {
+          csvRows.push(`${f.timestamp},${f.elapsedSec},${f.sensorA.toFixed(2)},${f.sensorB.toFixed(2)},${f.delta.toFixed(2)},${f.consensus.toFixed(2)},${f.classification}`);
+        });
+        const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `SENSEGuard_Telemetry_Session_${Date.now()}.csv`;
+        a.click();
+        this.playSuccessChime();
+      });
+    }
+
+    if (btnRecJSON) {
+      btnRecJSON.addEventListener('click', () => {
+        if (!this.telemetry.recordedFrames.length) return;
+        const blob = new Blob([JSON.stringify(this.telemetry.recordedFrames, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `SENSEGuard_Telemetry_Session_${Date.now()}.json`;
+        a.click();
+        this.playSuccessChime();
+      });
+    }
+
+    // -------------------------------------------------------------
+    // Supercharged 3D Digital Twin Event Handlers
+    // -------------------------------------------------------------
+    // Exploded View Slider
+    const rangeExplode = document.getElementById('range-twin-explode');
+    if (rangeExplode) {
+      rangeExplode.addEventListener('input', (e) => {
+        this.update3DExplode(parseInt(e.target.value, 10));
+      });
+    }
+
+    // Orbit Speed Slider
+    const rangeSpeed = document.getElementById('range-twin-speed');
+    const lblSpeed = document.getElementById('lbl-twin-speed');
+    if (rangeSpeed) {
+      rangeSpeed.addEventListener('input', (e) => {
+        this.three.orbitSpeed = parseFloat(e.target.value);
+        if (lblSpeed) lblSpeed.textContent = `${this.three.orbitSpeed.toFixed(1)}x`;
+      });
+    }
+
+    // Caliper Measurement Tool Toggle
+    const btnCaliper = document.getElementById('btn-tool-measure');
+    const txtCaliper = document.getElementById('txt-tool-measure');
+    const bannerCaliper = document.getElementById('twin-measure-banner');
+    if (btnCaliper) {
+      btnCaliper.addEventListener('click', () => {
+        this.three.caliperActive = !this.three.caliperActive;
+        btnCaliper.classList.toggle('active', this.three.caliperActive);
+        if (txtCaliper) txtCaliper.textContent = `Caliper Measure: ${this.three.caliperActive ? 'ON' : 'OFF'}`;
+        bannerCaliper?.classList.toggle('active', this.three.caliperActive);
+        if (!this.three.caliperActive) {
+          this.clearCaliperMeasurement();
+        }
+        this.playRelayClick();
+      });
+    }
+
+    document.getElementById('btn-measure-clear')?.addEventListener('click', () => {
+      this.clearCaliperMeasurement();
+    });
+
+    // 3D Spatial Pins Layer Toggle
+    const btnTags = document.getElementById('btn-toggle-3d-tags');
+    const txtTags = document.getElementById('txt-3d-tags');
+    if (btnTags) {
+      btnTags.addEventListener('click', () => {
+        this.three.spatialPinsVisible = !this.three.spatialPinsVisible;
+        if (txtTags) txtTags.textContent = `Spatial Pins: ${this.three.spatialPinsVisible ? 'ON' : 'OFF'}`;
+        this.playRelayClick();
+      });
+    }
+
+    // Shadows Toggle
+    document.getElementById('btn-toggle-shadows')?.addEventListener('click', () => {
+      this.three.shadowsEnabled = !this.three.shadowsEnabled;
+      if (this.three.keyLight) this.three.keyLight.castShadow = this.three.shadowsEnabled;
+      if (this.three.renderer) this.three.renderer.shadowMap.enabled = this.three.shadowsEnabled;
+      const btn = document.getElementById('btn-toggle-shadows');
+      if (btn) btn.textContent = `Shadows: ${this.three.shadowsEnabled ? 'ON' : 'OFF'}`;
+      this.playRelayClick();
+    });
+
+    // Subsystem Search Filter
+    const searchSub = document.getElementById('search-subsystems');
+    if (searchSub) {
+      searchSub.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        document.querySelectorAll('#subsystem-items-list .spec-card-item').forEach(item => {
+          const text = item.textContent.toLowerCase();
+          item.style.display = text.includes(query) ? '' : 'none';
+        });
+      });
+    }
+
+    // Subsystem Action Buttons (Focus & Wire)
+    document.querySelectorAll('.btn-sub-act.btn-isolate').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.target;
+        this.isolateSubsystem(target);
+      });
+    });
+
+    document.querySelectorAll('.btn-sub-act.btn-wire').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.target;
+        btn.classList.toggle('active');
+        this.toggleSubsystemWireframe(target);
+      });
     });
 
     // WebSerial Connect Toggle
